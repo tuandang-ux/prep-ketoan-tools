@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Meta → MISA · Import hoá đơn tự động</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --misa:#E8000D;--misa-dark:#B40009;--meta:#1877F2;--meta-dark:#166fe5;
+  --bg:#fafaf7;--surface:#ffffff;--subtle:#f4f3ee;--hover:#eeede7;
+  --text:#1a1a1a;--text-2:#5f5e5a;--text-3:#888780;--text-4:#b4b2a9;
+  --border:rgba(0,0,0,0.08);--border-2:rgba(0,0,0,0.16);
+  --success:#3B6D11;--success-bg:#EAF3DE;--success-b:#C0DD97;
+  --warn:#BA7517;--warn-bg:#FAEEDA;--warn-b:#FAC775;
+  --danger:#A32D2D;--danger-bg:#FCEBEB;--danger-b:#F7C1C1;
+  --info:#185FA5;--info-bg:#E6F1FB;--info-b:#B5D4F4;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+.app{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem 3rem}
+
+.hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;margin-bottom:1.25rem;border-bottom:0.5px solid var(--border-2)}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.logos{display:flex;align-items:center;gap:6px}
+.logo{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
+.logo-meta{background:#1877F2;font-size:14px}
+.logo-misa{background:#E8000D;font-size:10px}
+.arrow{color:var(--text-4);font-size:16px;margin:0 2px}
+.hdr h1{font-size:17px;font-weight:600}
+.hdr .sub{font-size:12px;color:var(--text-2);margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:8px}
+.chip{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info-b);font-weight:500}
+.btn-icon{background:transparent;border:0.5px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text-2);display:inline-flex;align-items:center;gap:4px}
+.btn-icon:hover{background:var(--hover);color:var(--text)}
+
+.stepper{display:flex;align-items:center;margin-bottom:1.5rem;padding:12px 16px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg)}
+.step{display:flex;align-items:center;gap:8px;flex:1}
+.step-n{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;transition:all 0.2s}
+.step.done .step-n{background:var(--success-bg);color:var(--success);border:0.5px solid var(--success-b)}
+.step.active .step-n{background:var(--meta);color:#fff}
+.step.idle .step-n{background:var(--subtle);color:var(--text-4);border:0.5px solid var(--border-2)}
+.step-lbl{font-size:12px;font-weight:500}
+.step.done .step-lbl{color:var(--success)}
+.step.active .step-lbl{color:var(--text)}
+.step.idle .step-lbl{color:var(--text-4)}
+.step-line{width:30px;height:0.5px;background:var(--border-2);margin:0 4px}
+
+.panel{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.panel-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.panel-h h2{font-size:14px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.05em}
+.panel-h-r{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tag{font-size:10px;padding:3px 8px;border-radius:20px;background:var(--subtle);color:var(--text-2);border:0.5px solid var(--border-2)}
+
+.drop{border:2px dashed var(--border-2);border-radius:var(--radius-lg);padding:2.5rem 1.5rem;text-align:center;background:var(--subtle);cursor:pointer;transition:all 0.2s;position:relative}
+.drop:hover,.drop.drag{border-color:var(--meta);background:var(--info-bg)}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-ico{width:44px;height:44px;margin:0 auto 10px;background:var(--surface);border:0.5px solid var(--border-2);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.drop p{font-size:14px;color:var(--text-2);margin-top:4px}
+.drop p b{color:var(--text);font-weight:600}
+.drop small{font-size:12px;color:var(--text-3);display:block;margin-top:6px}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.info-item{background:var(--subtle);border-radius:var(--radius);padding:10px 12px}
+.info-lbl{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;font-weight:500}
+.info-val{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.info-val.amount{color:var(--success)}
+.info-val.highlight{color:var(--info)}
+
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1rem}
+.kpi-c{background:var(--subtle);border-radius:var(--radius);padding:12px 14px}
+.kpi-c.ok{background:var(--success-bg);border:0.5px solid var(--success-b)}
+.kpi-c.warn{background:var(--warn-bg);border:0.5px solid var(--warn-b)}
+.kpi-c.danger{background:var(--danger-bg);border:0.5px solid var(--danger-b)}
+.kpi-l{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px}
+.kpi-v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.tbl-wrap{border:0.5px solid var(--border-2);border-radius:var(--radius);overflow:auto;max-height:600px;background:var(--surface)}
+table.data{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.data thead{position:sticky;top:0;z-index:2}
+table.data th{background:#2C2C2A;color:#fff;padding:10px 10px;text-align:left;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;border-right:0.5px solid rgba(255,255,255,0.1)}
+table.data th.num{text-align:right}
+table.data td{padding:7px 10px;border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border);white-space:nowrap;vertical-align:middle}
+table.data td.num{text-align:right;color:var(--info);font-weight:500}
+table.data td.row-n{text-align:center;background:var(--subtle);color:var(--text-3);font-weight:600;font-size:11px;min-width:36px}
+table.data tr.attn{background:#FCEBEB}
+table.data tr.attn td.row-n{background:#F7C1C1;color:var(--danger)}
+table.data tr.modified td.row-n{background:#FAEEDA;color:var(--warn)}
+table.data tr.modified td.row-n::after{content:" ●";color:var(--warn)}
+table.data tr:hover td:not(.row-n){background:var(--hover)}
+table.data tr.attn:hover td:not(.row-n){background:#F7C1C1}
+table.data tr.insta td.row-n::before{content:"IG ";font-size:9px;color:var(--meta);font-weight:600}
+.cell-readonly{color:var(--text-2)}
+table.data select,table.data input{border:0.5px solid transparent;border-radius:4px;padding:3px 6px;font-size:12px;font-family:inherit;background:transparent;width:100%;min-width:100px;font-variant-numeric:tabular-nums}
+table.data select:hover,table.data input:hover{border-color:var(--border-2);background:var(--surface)}
+table.data select:focus,table.data input:focus{outline:none;border-color:var(--meta);background:var(--surface);box-shadow:0 0 0 2px var(--info-bg)}
+table.data select.attn{border-color:var(--danger);background:var(--danger-bg);color:var(--danger);font-weight:500}
+
+.tr-btn{background:transparent;border:0.5px solid var(--border-2);border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer;color:var(--text-2);margin-right:2px}
+.tr-btn:hover{background:var(--hover);color:var(--text)}
+.tr-btn.warn{border-color:var(--warn-b);color:var(--warn)}
+.tr-btn.warn:hover{background:var(--warn-bg)}
+.tr-btn.danger:hover{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-b)}
+.tr-btn.primary{background:var(--meta);color:#fff;border-color:var(--meta)}
+.tr-btn.primary:hover{background:var(--meta-dark)}
+
+.btn{border-radius:var(--radius);border:0.5px solid var(--border-2);background:var(--surface);color:var(--text);padding:9px 18px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--hover)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-meta{background:var(--meta);color:#fff;border-color:var(--meta)}
+.btn-meta:hover:not(:disabled){background:var(--meta-dark)}
+.btn-misa{background:var(--misa);color:#fff;border-color:var(--misa)}
+.btn-misa:hover:not(:disabled){background:var(--misa-dark)}
+.btn-warn{background:var(--warn);color:#fff;border-color:var(--warn)}
+.btn-warn:hover:not(:disabled){background:#96600e}
+.btn-ghost{background:transparent}
+.btn-lg{padding:12px 24px;font-size:14px}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+.actions{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:1.25rem;flex-wrap:wrap}
+.actions-r{display:flex;gap:8px;flex-wrap:wrap}
+
+.note{font-size:12px;border-radius:var(--radius);padding:10px 14px;display:flex;align-items:flex-start;gap:8px;margin:10px 0}
+.note-info{background:var(--info-bg);color:var(--info);border-left:3px solid var(--meta)}
+.note-warn{background:var(--warn-bg);color:var(--warn);border-left:3px solid var(--warn-b)}
+.note-success{background:var(--success-bg);color:var(--success);border-left:3px solid var(--success-b)}
+.note-danger{background:var(--danger-bg);color:var(--danger);border-left:3px solid var(--danger-b)}
+.note b{font-weight:600}
+.note-action{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.note-action > div{flex:1}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;max-width:560px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.modal h3.warn-title::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.modal h3.info-title::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--meta)}
+.modal .intro{font-size:13px;color:var(--text-2);margin-bottom:1rem;padding-bottom:1rem;border-bottom:0.5px solid var(--border)}
+.modal .intro b{color:var(--text);font-weight:600}
+.form-grp{margin-bottom:12px}
+.form-grp label{display:block;font-size:12px;color:var(--text-2);margin-bottom:4px;font-weight:500}
+.form-grp label .req{color:var(--misa);margin-left:2px}
+.form-grp input,.form-grp select{width:100%;border:0.5px solid var(--border-2);border-radius:var(--radius);padding:8px 10px;font-size:13px;font-family:inherit;background:var(--surface)}
+.form-grp input:focus,.form-grp select:focus{outline:none;border-color:var(--meta);box-shadow:0 0 0 2px var(--info-bg)}
+.form-grp input[readonly]{background:var(--subtle);color:var(--text-2);cursor:not-allowed}
+.form-grp .hint{font-size:11px;color:var(--text-3);margin-top:2px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;justify-content:space-between;margin-top:1rem;padding-top:1rem;border-top:0.5px solid var(--border);flex-wrap:wrap}
+.modal-actions .left{display:flex;gap:8px;flex-wrap:wrap}
+.modal-actions .right{display:flex;gap:8px;flex-wrap:wrap}
+
+.settings-pane{display:none;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.settings-pane.open{display:block}
+.mapping-list{margin-top:10px;max-height:360px;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius)}
+.mapping-row{display:grid;grid-template-columns:140px 1.4fr 80px 80px 110px 130px 90px;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--border);font-size:12px;align-items:center}
+.mapping-row:last-child{border-bottom:none}
+.mapping-row.hdr{background:var(--subtle);font-weight:600;color:var(--text-2);font-size:11px;text-transform:uppercase;position:sticky;top:0;z-index:1}
+.mapping-row code{font-family:ui-monospace,monospace;font-size:11px;background:var(--subtle);padding:2px 6px;border-radius:3px;display:inline-block}
+.mapping-row .cus{color:var(--meta);font-size:10px;font-weight:600;background:var(--info-bg);padding:1px 6px;border-radius:10px;margin-left:4px}
+.mapping-row .actions-col{display:flex;gap:4px;justify-content:flex-end}
+
+.proc{display:none;position:fixed;inset:0;background:rgba(255,255,255,0.9);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.proc.on{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--info-b);border-top-color:var(--meta);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-msg{font-size:14px;color:var(--text-2);font-weight:500}
+
+.hidden{display:none!important}
+
+@media (max-width: 900px){
+  table.data{font-size:11.5px}
+  table.data th,table.data td{padding:6px 8px}
+  .hdr h1{font-size:15px}
+  .mapping-row{grid-template-columns:100px 1fr 70px 60px;gap:6px}
+  .mapping-row .hide-sm{display:none}
+}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div class="app">
+
+<h2 class="sr-only">Công cụ hạch toán hoá đơn Meta sang MISA AMIS Accounting</h2>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="logos">
+      <div class="logo logo-meta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      </div>
+      <span class="arrow">→</span>
+      <div class="logo logo-misa">AMIS</div>
+    </div>
+    <div>
+      <h1>Import hoá đơn Meta vào MISA</h1>
+      <p class="sub">Trích xuất PDF tự động · Xuất file Excel đúng chuẩn AMIS Accounting</p>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <span class="chip" id="mappings-count">0 mã dịch vụ</span>
+    <button class="btn-icon" onclick="toggleSettings()">⚙ Danh mục</button>
+  </div>
+</header>
+
+<div class="stepper" id="stepper">
+  <div class="step active" data-step="1"><div class="step-n">1</div><div class="step-lbl">Tải PDF hoá đơn</div></div>
+  <div class="step-line"></div>
+  <div class="step idle" data-step="2"><div class="step-n">2</div><div class="step-lbl">Xem thông tin trích xuất</div></div>
+  <div class="step-line"></div>
+  <div class="step idle" data-step="3"><div class="step-n">3</div><div class="step-lbl">Kiểm tra & chỉnh sửa</div></div>
+  <div class="step-line"></div>
+  <div class="step idle" data-step="4"><div class="step-n">4</div><div class="step-lbl">Xuất Excel MISA</div></div>
+</div>
+
+<!-- Settings panel -->
+<div class="settings-pane" id="settings">
+  <div class="panel-h">
+    <h2>Danh mục Mã dịch vụ</h2>
+    <div class="panel-h-r">
+      <button class="btn btn-sm btn-meta" onclick="openModalNew()">+ Thêm mã mới</button>
+      <button class="btn-icon" onclick="resetMappings()">↺ Khôi phục mặc định</button>
+      <button class="btn-icon" onclick="exportMappings()">⇩ Xuất JSON</button>
+      <button class="btn-icon" onclick="document.getElementById('import-map-input').click()">⇧ Nhập JSON</button>
+      <input type="file" id="import-map-input" accept=".json" style="display:none" onchange="importMappings(this.files[0])">
+    </div>
+  </div>
+  <div class="note note-info">
+    <span>ℹ</span>
+    <span>Tool đang dùng <b id="default-count">0</b> mã mặc định + <b id="custom-count">0</b> mã tuỳ chỉnh (lưu trong trình duyệt). Có thể thêm, sửa, xoá. Mã mặc định khi sửa sẽ tạo bản ghi tuỳ chỉnh override, khi xoá sẽ trở về giá trị mặc định.</span>
+  </div>
+  <div class="mapping-list" id="mapping-list"></div>
+</div>
+
+<!-- STEP 1: Upload -->
+<section class="panel" id="s1">
+  <div class="panel-h">
+    <h2>Bước 1 · Tải lên hoá đơn PDF từ Meta</h2>
+    <span class="tag">Bắt buộc</span>
+  </div>
+  <div class="drop" id="drop">
+    <input type="file" id="file" accept=".pdf" aria-label="Chọn file PDF">
+    <div class="drop-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
+    </div>
+    <p><b>Kéo thả file PDF</b> hoặc nhấp để chọn</p>
+    <small>Hoá đơn từ Meta Platforms Ireland (Facebook / Instagram Ads)</small>
+  </div>
+  <div class="note note-info" style="margin-top:10px">
+    <span>🔒</span>
+    <span>Tool chạy hoàn toàn <b>offline trong trình duyệt</b> của bạn — file PDF không gửi lên server, dữ liệu không bị lưu ngoài máy.</span>
+  </div>
+</section>
+
+<!-- STEP 2: Invoice info -->
+<section class="panel hidden" id="s2">
+  <div class="panel-h">
+    <h2>Bước 2 · Thông tin hoá đơn đã trích xuất</h2>
+    <span class="tag" id="pdf-name">—</span>
+  </div>
+  <div class="info-grid" id="invoice-info"></div>
+  <div class="note" id="total-check" style="margin-top:12px"></div>
+</section>
+
+<!-- STEP 3: Edit table -->
+<section class="panel hidden" id="s3">
+  <div class="panel-h">
+    <h2>Bước 3 · Kiểm tra & chỉnh sửa dòng hạch toán</h2>
+    <div class="panel-h-r">
+      <span class="tag"><span id="row-count">0</span> dòng · Sheet <span id="sheet-name">—</span></span>
+      <button class="btn btn-sm btn-warn" id="btn-save-changes" onclick="saveAllModifiedToCatalog()" title="Lưu thông tin đã sửa (Kênh/Thị trường/Sản phẩm/Dự án) vào danh mục để dùng cho lần sau">💾 Lưu thay đổi vào danh mục</button>
+    </div>
+  </div>
+  <div class="kpi" id="kpi"></div>
+  <div id="attn-alert"></div>
+  <div class="tbl-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="min-width:40px">#</th>
+          <th>Ad Account Name (từ PDF)</th>
+          <th style="min-width:150px">Mã dịch vụ (K)</th>
+          <th style="min-width:220px">Tên dịch vụ (L)</th>
+          <th class="num" style="min-width:130px">Thành tiền (S)</th>
+          <th style="min-width:110px">Kênh (W)</th>
+          <th style="min-width:100px">Thị trường (X)</th>
+          <th style="min-width:120px">Sản phẩm (Y)</th>
+          <th style="min-width:130px">Dự án (Z)</th>
+          <th style="min-width:80px">Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STEP 4: Export -->
+<section class="panel hidden" id="s4">
+  <div class="panel-h">
+    <h2>Bước 4 · Xuất file Excel để import vào MISA</h2>
+  </div>
+  <div class="note note-success">
+    <span>✓</span>
+    <span>File xuất ra sẽ có cấu trúc <b>26 cột chuẩn MISA AMIS</b>, sheet đặt tên theo tháng hoá đơn (VD: <b id="export-sheet">T3</b>). Sau khi xuất, vào MISA chọn <b>Tệp → Nhập khẩu → Chọn file</b> vừa tải về.</span>
+  </div>
+  <div class="actions">
+    <div>
+      <button class="btn btn-ghost" onclick="resetAll()">🔄 Xử lý hoá đơn khác</button>
+    </div>
+    <div class="actions-r">
+      <button class="btn" onclick="previewJson()">👁 Xem JSON</button>
+      <button class="btn btn-misa btn-lg" onclick="exportXlsx()">⬇ Tải file Excel MISA</button>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- Modal (unified for new-from-line / new-standalone / edit) -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title" class="warn-title">Mã dịch vụ mới</h3>
+    <div class="intro hidden" id="modal-intro"></div>
+    <div class="form-grp">
+      <label>Mã dịch vụ <span class="req">*</span></label>
+      <input type="text" id="f-code" placeholder="VD: QC IELTS, B2B, BR_GLOBAL...">
+      <div class="hint">Mã viết hoa/thường đều được. Tool sẽ ghi nhớ cho lần sau.</div>
+    </div>
+    <div class="form-grp">
+      <label>Tên dịch vụ <span class="req">*</span></label>
+      <input type="text" id="f-name" placeholder="VD: Chi phí chạy quảng cáo IELTS">
+    </div>
+    <div class="form-row">
+      <div class="form-grp">
+        <label>Kênh — cột W <span class="req">*</span></label>
+        <select id="f-kenh">
+          <option value="B2C">B2C</option>
+          <option value="B2B">B2B</option>
+          <option value="Đa Kênh">Đa Kênh</option>
+        </select>
+      </div>
+      <div class="form-grp">
+        <label>Thị trường — cột X <span class="req">*</span></label>
+        <select id="f-market">
+          <option value="VN">VN</option>
+          <option value="TL">TL</option>
+          <option value="ID">ID</option>
+          <option value="KR">KR</option>
+          <option value="JP">JP</option>
+          <option value="HK">HK</option>
+          <option value="INT">INT</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-grp">
+        <label>Sản phẩm — cột Y <span class="req">*</span></label>
+        <select id="f-product">
+          <option value="All">All</option>
+          <option value="IELTS">IELTS</option>
+          <option value="TOEIC">TOEIC</option>
+          <option value="HSK">HSK</option>
+          <option value="VSTEP">VSTEP</option>
+          <option value="Preptalk">Preptalk</option>
+          <option value="IELT JUNIOR">IELT JUNIOR</option>
+          <option value="APTIS">APTIS</option>
+          <option value="TOEFL">TOEFL</option>
+          <option value="SAT">SAT</option>
+          <option value="AET">AET</option>
+          <option value="OTH">OTH</option>
+        </select>
+      </div>
+      <div class="form-grp">
+        <label>Dự án — cột Z <span class="req">*</span></label>
+        <select id="f-project">
+          <option value="Ưu đãi">Ưu đãi</option>
+          <option value="Chung">Chung</option>
+          <option value="Không ưu đãi">Không ưu đãi</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <div class="left">
+        <button class="btn btn-ghost hidden" id="btn-modal-skip" onclick="skipModal()">Bỏ qua dòng này</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-ghost" onclick="closeModal()">Huỷ</button>
+        <button class="btn btn-meta" id="btn-modal-save" onclick="saveModal()">Lưu mã dịch vụ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Processing overlay -->
+<div class="proc" id="proc">
+  <div class="spinner"></div>
+  <div class="proc-msg" id="proc-msg">Đang xử lý...</div>
+</div>
+
+<script>
+/* ============================================================
+   META → MISA AMIS IMPORTER
+   Phiên bản offline, chạy trong trình duyệt
+   ============================================================ */
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ---------- DEFAULT SERVICE CODE DATABASE ---------- */
+const DEFAULT_MAPPINGS = {
+  'B2B':           { name: 'Chi phí chạy quảng cáo B2B',         kenh: 'B2B',     market: 'VN', product: 'All',         project: 'Chung' },
+  'BR_GLOBAL':     { name: 'Branding Global',                    kenh: 'Đa Kênh', market: 'INT', product: 'All',         project: 'Chung' },
+  'HSK':           { name: 'Chi phí chạy quảng cáo HSK',         kenh: 'B2C',     market: 'VN', product: 'HSK',         project: 'Ưu đãi' },
+  'IELS THAI':     { name: 'Chi phí chạy quảng cáo Prep Ielts Thái', kenh: 'B2C', market: 'TL', product: 'IELTS',       project: 'Ưu đãi' },
+  'PTE':           { name: 'Chi phí chạy quảng cáo Prep Talk',   kenh: 'B2C',     market: 'VN', product: 'Preptalk',    project: 'Ưu đãi' },
+  'QC branding':   { name: 'Chi phí chạy quảng cáo Branding',    kenh: 'Đa Kênh', market: 'VN', product: 'All',         project: 'Chung' },
+  'QC IE JUNIOR':  { name: 'Chi phí quảng cáo Ielts junior',     kenh: 'B2C',     market: 'VN', product: 'IELT JUNIOR', project: 'Ưu đãi' },
+  'QC IELTS':      { name: 'Chi phí chạy quảng cáo IELTS',       kenh: 'B2C',     market: 'VN', product: 'IELTS',       project: 'Ưu đãi' },
+  'QC VSTEP':      { name: 'Chi phí quảng cáo Vstep',            kenh: 'B2C',     market: 'VN', product: 'VSTEP',       project: 'Không ưu đãi' },
+  'TOEIC':         { name: 'Chi phí chạy quảng cáo TOEIC',       kenh: 'B2C',     market: 'VN', product: 'TOEIC',       project: 'Ưu đãi' },
+  'Toeic Thai':    { name: 'Chi phí quảng cáo Toeic Thái Lan',   kenh: 'B2C',     market: 'TL', product: 'TOEIC',       project: 'Ưu đãi' }
+};
+
+/* ---------- FIXED FIELDS ---------- */
+const FIXED = {
+  supplier: { vat: '9000000327', name: 'Meta Platforms Ireland Limited', address: '4 Grand Canal Square, Grand Canal HarbourDublin 2, Ireland' },
+  paymentMethod: 'Chưa thanh toán',
+  withInvoice: 'Không kèm hóa đơn',
+  isPurchase: 'Không',
+  tkChiPhi: '64171',
+  tkCongNo: '331',
+  doiTuong: '9000000327',
+  dvt: '',
+  soLuong: 1,
+  vatPct: 0,
+  vatAmount: '',
+  tkThue: '1331'
+};
+
+/* ---------- STATE ---------- */
+let state = {
+  metadata: null,
+  lines: [],
+  fileName: '',
+  customMappings: {},
+  diag: null
+};
+
+// Modal state
+let modalMode = 'new-line'; // 'new-line' | 'new-standalone' | 'edit'
+let modalEditKey = null;
+let modalTargetIdx = null;
+
+// Unknown queue
+let pendingUnknowns = []; // array of line indices
+
+/* ---------- LOCALSTORAGE ---------- */
+const LS_KEY = 'meta_misa_custom_mappings_v1';
+function loadCustomMappings(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    state.customMappings = raw ? JSON.parse(raw) : {};
+  }catch(e){ state.customMappings = {}; }
+  // Migration: nếu user có override cũ của BR_GLOBAL với market='VN', đề xuất cập nhật về 'INT'
+  setTimeout(checkMigrationBRGlobal, 100);
+}
+function checkMigrationBRGlobal(){
+  const override = state.customMappings['BR_GLOBAL'];
+  if (override && override.market === 'VN'){
+    const ok = confirm(
+      'Cập nhật quy tắc: mã "BR_GLOBAL" giờ có Thị trường mặc định là "INT" (thay vì "VN").\n\n' +
+      'Phát hiện bạn đang có bản override cũ với market = "VN".\n\n' +
+      '• Bấm OK để xoá override → dùng giá trị mới "INT"\n' +
+      '• Bấm Cancel để giữ nguyên override hiện tại của bạn'
+    );
+    if (ok){
+      delete state.customMappings['BR_GLOBAL'];
+      saveCustomMappings();
+      refreshMappingsCount();
+      if (state.lines.length > 0){
+        const m = getAllMappings()['BR_GLOBAL'];
+        for (const ln of state.lines){
+          if (ln.code === 'BR_GLOBAL'){
+            ln.market = m.market;
+          }
+        }
+        renderTable();
+      }
+    }
+  }
+}
+function saveCustomMappings(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state.customMappings));
+}
+function getAllMappings(){
+  return { ...DEFAULT_MAPPINGS, ...state.customMappings };
+}
+function refreshMappingsCount(){
+  const all = getAllMappings();
+  const count = Object.keys(all).length;
+  document.getElementById('mappings-count').textContent = count + ' mã dịch vụ';
+  document.getElementById('default-count').textContent = Object.keys(DEFAULT_MAPPINGS).length;
+  document.getElementById('custom-count').textContent = Object.keys(state.customMappings).length;
+  renderMappingList();
+}
+function renderMappingList(){
+  const all = getAllMappings();
+  const keys = Object.keys(all).sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  const html = [
+    '<div class="mapping-row hdr"><div>Mã DV</div><div>Tên DV</div><div>Kênh</div><div>TT</div><div>Sản phẩm</div><div>Dự án</div><div class="actions-col"></div></div>'
+  ];
+  for (const k of keys){
+    const m = all[k];
+    const isCustom = state.customMappings[k] !== undefined;
+    const isOverride = isCustom && DEFAULT_MAPPINGS[k] !== undefined;
+    const badge = isOverride ? '<span class="cus">override</span>' : (isCustom ? '<span class="cus">mới</span>' : '');
+    const delBtn = isCustom
+      ? `<button class="tr-btn danger" onclick="deleteCustomMapping('${jsEscape(k)}')" title="${isOverride ? 'Xoá override, về mặc định' : 'Xoá mã này'}">✕</button>`
+      : '';
+    html.push(`<div class="mapping-row">
+      <div><code>${escapeHtml(k)}</code>${badge}</div>
+      <div>${escapeHtml(m.name)}</div>
+      <div>${escapeHtml(m.kenh)}</div>
+      <div>${escapeHtml(m.market)}</div>
+      <div>${escapeHtml(m.product)}</div>
+      <div>${escapeHtml(m.project)}</div>
+      <div class="actions-col">
+        <button class="tr-btn" onclick="openModalEdit('${jsEscape(k)}')" title="Sửa">✎</button>
+        ${delBtn}
+      </div>
+    </div>`);
+  }
+  document.getElementById('mapping-list').innerHTML = html.join('');
+}
+function deleteCustomMapping(key){
+  const isOverride = DEFAULT_MAPPINGS[key] !== undefined;
+  const msg = isOverride
+    ? `Xoá override của "${key}"? Mã sẽ trở về giá trị mặc định.`
+    : `Xoá hẳn mã dịch vụ "${key}"?`;
+  if (!confirm(msg)) return;
+  delete state.customMappings[key];
+  saveCustomMappings();
+  refreshMappingsCount();
+  // Refresh table if visible
+  if (state.lines.length > 0) renderTable();
+}
+function resetMappings(){
+  if (!confirm('Xoá toàn bộ mã dịch vụ tuỳ chỉnh và khôi phục danh sách mặc định?')) return;
+  state.customMappings = {};
+  saveCustomMappings();
+  refreshMappingsCount();
+  if (state.lines.length > 0) renderTable();
+}
+function exportMappings(){
+  const blob = new Blob([JSON.stringify(state.customMappings, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'meta_misa_mappings.json';
+  a.click();
+}
+function importMappings(file){
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const obj = JSON.parse(e.target.result);
+      state.customMappings = { ...state.customMappings, ...obj };
+      saveCustomMappings();
+      refreshMappingsCount();
+      if (state.lines.length > 0) renderTable();
+      alert('Đã nhập '+Object.keys(obj).length+' mã dịch vụ.');
+    }catch(e){ alert('File JSON không hợp lệ.'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- UTILITIES ---------- */
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function jsEscape(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'").replace(/"/g,'&quot;'); }
+function fmtVND(n){ if (n==null||isNaN(n))return ''; return Number(n).toLocaleString('vi-VN'); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function showProc(msg){ document.getElementById('proc-msg').textContent = msg; document.getElementById('proc').classList.add('on'); }
+function hideProc(){ document.getElementById('proc').classList.remove('on'); }
+function setStep(n){
+  document.querySelectorAll('.step').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.remove('done','active','idle');
+    if (s < n) el.classList.add('done');
+    else if (s === n) el.classList.add('active');
+    else el.classList.add('idle');
+  });
+}
+function toggleSettings(){
+  document.getElementById('settings').classList.toggle('open');
+}
+
+/* ---------- AUTO-CLASSIFY ---------- */
+function classifyAdAccount(name){
+  const n = name.toLowerCase().trim();
+  const hasThai = /th[aáà]i/i.test(name);
+  if (/branding\s*global/i.test(n)) return 'BR_GLOBAL';
+  if (hasThai && /toeic/i.test(n)) return 'Toeic Thai';
+  if (hasThai && /ielts/i.test(n)) return 'IELS THAI';
+  if (/branding/i.test(n)) return 'QC branding';
+  if (/\bb2b\b/i.test(n)) return 'B2B';
+  if (/ielts/i.test(n)) return 'QC IELTS';
+  if (/toeic/i.test(n)) return 'TOEIC';
+  if (/\bhsk\b/i.test(n)) return 'HSK';
+  if (/vstep/i.test(n)) return 'QC VSTEP';
+  if (/ie\s*junior/i.test(n) || /ielts?\s*junior/i.test(n)) return 'QC IE JUNIOR';
+  if (/prep\s*talk/i.test(n)) return 'PTE';
+  return null;
+}
+
+/* ---------- PDF PARSING ---------- */
+async function parsePdfFile(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  let fullText = '';
+  let linesText = [];
+  const TOL = 2.5;
+  for (let i = 1; i <= pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const items = content.items.filter(it => it.str && it.str.trim().length);
+    const groups = [];
+    for (const it of items){
+      const y = it.transform[5];
+      const x = it.transform[4];
+      let g = groups.find(grp => Math.abs(grp.y - y) < TOL);
+      if (!g){
+        g = { y, items: [] };
+        groups.push(g);
+      }
+      g.items.push({ x, s: it.str });
+    }
+    groups.sort((a, b) => b.y - a.y);
+    for (const g of groups){
+      const row = g.items.sort((a, b) => a.x - b.x).map(o => o.s).join(' ').replace(/\s+/g, ' ').trim();
+      if (row){
+        linesText.push(row);
+        fullText += row + '\n';
+      }
+    }
+    fullText += '\n';
+  }
+  return { fullText, linesText };
+}
+
+function extractMetadata(fullText){
+  const invMatch = fullText.match(/Invoice\s*#?\s*:?\s*(\d+)/i);
+  const dateMatch = fullText.match(/Invoice\s*Date\s*:?\s*([\d]{1,2}[\-\/\s][A-Za-z]{3,}[\-\/\s][\d]{2,4})/i);
+  const bpMatch = fullText.match(/Billing\s*Period\s*:?\s*([A-Za-z]{3,})[\-\s]+(\d{2,4})/i);
+  const subtotalMatch = fullText.match(/Subtotal\s*:?\s*([\d,\.]+)/i);
+  const totalMatch = fullText.match(/Invoice\s*Total\s*:?\s*([\d,\.]+)/i);
+  const currencyMatch = fullText.match(/Invoice\s*Currency\s*:?\s*([A-Z]{3})/i);
+
+  const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  let month = null, billingYear = null;
+  if (bpMatch){
+    const mKey = bpMatch[1].toLowerCase().slice(0,3);
+    month = months[mKey] || null;
+    let y = parseInt(bpMatch[2],10);
+    if (y < 100) y += 2000;
+    billingYear = y;
+  }
+
+  const processingYear = new Date().getFullYear();
+  const year = processingYear;
+  const lastDay = month ? new Date(year, month, 0).getDate() : null;
+  const dateStr = (month && lastDay) ? `${pad2(lastDay)}/${pad2(month)}/${year}` : null;
+
+  return {
+    invoiceNumber: invMatch ? invMatch[1] : null,
+    invoiceDate: dateMatch ? dateMatch[1] : null,
+    billingMonth: month,
+    billingYear,
+    processingYear,
+    year,
+    lastDay,
+    dateStr,
+    subtotal: subtotalMatch ? parseInt(subtotalMatch[1].replace(/[,\.]/g,''),10) : null,
+    invoiceTotal: totalMatch ? parseInt(totalMatch[1].replace(/[,\.]/g,''),10) : null,
+    currency: currencyMatch ? currencyMatch[1] : 'VND',
+    soChungTu: month ? 'meta' + month : 'meta',
+    sheetName: month ? 'T' + month : 'T?',
+    dienGiai: month ? `Phí dịch vụ facebook T${month}.${year}` : 'Phí dịch vụ facebook'
+  };
+}
+
+/* Extract line items — logic sequential number + hỗ trợ:
+   - Mọi prefix: Instagram, Marketing Messages, Messenger, WhatsApp, Audience Network, v.v.
+   - Dòng wrap xuống 2-3 dòng visual (gộp lại trước khi parse)
+   - Amount bất kỳ (có/không dấu phẩy, nhỏ như 0 hoặc lớn như chục tỷ)
+*/
+function extractLineItems(linesText){
+  // Pattern đầy đủ: số thứ tự + [optional prefix + dash] + ad_account_id(10+ digits) + /company.Prep/ + name + amount
+  const linePat = /^\s*(\d{1,3})\s+(?:([A-Za-z][A-Za-z\s]*?)\s*[-–]\s*)?(\d{10,})\s*\/[^\/]*Prep\s*\/\s*(.+?)\s+(\d[\d,]*)\s*$/;
+  // Pattern nhận diện dòng "bắt đầu" của 1 line-item (chưa chắc hoàn chỉnh) - dùng để biết khi nào dừng merge
+  const starterPat = /^\s*\d{1,3}\s+(?:[A-Za-z][A-Za-z\s]*?\s*[-–]\s*)?\d{10,}/;
+
+  const items = [];
+  let expected = 1;
+  const diag = { totalLines: linesText.length, matchedSequential: 0, duplicates: 0, outOfSequence: [], merged: 0 };
+
+  let i = 0;
+  while (i < linesText.length){
+    const line = linesText[i].replace(/\s+/g, ' ').trim();
+    let m = line.match(linePat);
+    let consumed = 1;
+
+    // Fallback: nếu dòng là "starter" nhưng không có amount/name đủ → thử gộp với dòng kế tiếp
+    if (!m && starterPat.test(line)){
+      let merged = line;
+      const MAX_MERGE = 4;
+      for (let j = i + 1; j < linesText.length && j - i <= MAX_MERGE; j++){
+        const nextLine = linesText[j].replace(/\s+/g, ' ').trim();
+        // Dừng nếu dòng tiếp là starter mới (không phải phần nối tiếp)
+        if (starterPat.test(nextLine)) break;
+        merged += ' ' + nextLine;
+        const mm = merged.match(linePat);
+        if (mm){
+          m = mm;
+          consumed = j - i + 1;
+          diag.merged++;
+          break;
+        }
+      }
+    }
+
+    if (m){
+      const num = parseInt(m[1], 10);
+      if (num === expected){
+        items.push({
+          lineNum: num,
+          prefix: m[2] ? m[2].trim() : '',
+          adAccountId: m[3],
+          name: m[4].trim(),
+          amount: parseInt(m[5].replace(/,/g, ''), 10)
+        });
+        expected++;
+        diag.matchedSequential++;
+      } else if (num < expected){
+        diag.duplicates++;
+      } else {
+        diag.outOfSequence.push(num);
+      }
+    }
+
+    i += consumed;
+  }
+
+  return { items, diag };
+}
+
+/* ---------- MAIN PROCESS ---------- */
+async function handleFile(file){
+  if (!file || !file.name.toLowerCase().endsWith('.pdf')){
+    alert('Vui lòng chọn file PDF.');
+    return;
+  }
+  state.fileName = file.name;
+  showProc('Đang đọc file PDF...');
+  try{
+    const { fullText, linesText } = await parsePdfFile(file);
+    showProc('Đang trích xuất dữ liệu...');
+    const metadata = extractMetadata(fullText);
+    const { items: rawItems, diag } = extractLineItems(linesText);
+    if (!metadata.invoiceNumber || rawItems.length === 0){
+      hideProc();
+      alert('Không nhận diện được cấu trúc hoá đơn Meta.\n\n- Invoice #: ' + (metadata.invoiceNumber||'không tìm thấy') + '\n- Số dòng quét được: ' + rawItems.length + '\n\nVui lòng kiểm tra file PDF có đúng là hoá đơn Meta Ads không.');
+      return;
+    }
+    const lines = rawItems.map((it, idx) => {
+      const code = classifyAdAccount(it.name);
+      const prefix = it.prefix || '';
+      return {
+        idx: idx + 1,
+        pdfLineNum: it.lineNum,
+        prefix: prefix,
+        isInstagram: prefix.toLowerCase() === 'instagram',
+        adAccountId: it.adAccountId,
+        adAccountName: it.name,
+        amount: it.amount,
+        code: code,
+        name: '',
+        kenh: '',
+        market: '',
+        product: '',
+        project: ''
+      };
+    });
+    const all = getAllMappings();
+    for (const ln of lines){
+      if (ln.code && all[ln.code]){
+        const m = all[ln.code];
+        ln.name = m.name;
+        ln.kenh = m.kenh;
+        ln.market = m.market;
+        ln.product = m.product;
+        ln.project = m.project;
+      }
+    }
+    state.metadata = metadata;
+    state.lines = lines;
+    state.diag = diag;
+    hideProc();
+    renderAll();
+    // Trigger unknown queue auto-flow
+    setTimeout(() => startUnknownQueue(), 300);
+  }catch(err){
+    console.error(err);
+    hideProc();
+    alert('Lỗi xử lý PDF: ' + err.message);
+  }
+}
+
+/* ---------- UNKNOWN QUEUE ---------- */
+function startUnknownQueue(){
+  const uniqueNames = new Map();
+  state.lines.forEach((ln, i) => {
+    if (!ln.code && !uniqueNames.has(ln.adAccountName)){
+      uniqueNames.set(ln.adAccountName, i);
+    }
+  });
+  pendingUnknowns = Array.from(uniqueNames.values());
+  if (pendingUnknowns.length > 0){
+    nextUnknownInQueue();
+  }
+}
+function nextUnknownInQueue(){
+  if (pendingUnknowns.length === 0) return;
+  const idx = pendingUnknowns.shift();
+  openModalForLine(idx);
+}
+
+/* ---------- RENDER ---------- */
+function renderAll(){
+  renderInvoiceInfo();
+  renderTable();
+  document.getElementById('s2').classList.remove('hidden');
+  document.getElementById('s3').classList.remove('hidden');
+  document.getElementById('s4').classList.remove('hidden');
+  setStep(3);
+  document.getElementById('pdf-name').textContent = state.fileName;
+  document.getElementById('sheet-name').textContent = state.metadata.sheetName;
+  document.getElementById('export-sheet').textContent = state.metadata.sheetName;
+  document.getElementById('row-count').textContent = state.lines.length;
+  document.getElementById('s2').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderInvoiceInfo(){
+  const m = state.metadata;
+  const sum = state.lines.reduce((s,l) => s + l.amount, 0);
+  const html = `
+    <div class="info-item"><div class="info-lbl">Số hoá đơn</div><div class="info-val highlight">${escapeHtml(m.invoiceNumber)}</div></div>
+    <div class="info-item"><div class="info-lbl">Ngày hoá đơn (PDF)</div><div class="info-val">${escapeHtml(m.invoiceDate||'-')}</div></div>
+    <div class="info-item"><div class="info-lbl">Kỳ thanh toán</div><div class="info-val">Tháng ${m.billingMonth} / ${m.billingYear||'?'}</div></div>
+    <div class="info-item"><div class="info-lbl">Nhà cung cấp</div><div class="info-val" style="font-size:12.5px">Meta Platforms Ireland</div></div>
+    <div class="info-item"><div class="info-lbl">Tiền tệ</div><div class="info-val">${escapeHtml(m.currency)}</div></div>
+    <div class="info-item"><div class="info-lbl">Tổng cộng (PDF)</div><div class="info-val amount">${fmtVND(m.invoiceTotal)}</div></div>
+    <div class="info-item"><div class="info-lbl">Ngày hạch toán (D, E)</div><div class="info-val highlight">${escapeHtml(m.dateStr||'-')}</div></div>
+    <div class="info-item"><div class="info-lbl">Số chứng từ (F)</div><div class="info-val highlight">${escapeHtml(m.soChungTu)}</div></div>
+  `;
+  document.getElementById('invoice-info').innerHTML = html;
+  const tc = document.getElementById('total-check');
+  const diff = (m.invoiceTotal||0) - sum;
+  if (diff === 0){
+    tc.className = 'note note-success';
+    tc.innerHTML = `<span>✓</span><span>Tổng <b>${state.lines.length} dòng</b> khớp đúng <b>Invoice Total</b> trong PDF: ${fmtVND(sum)} ₫</span>`;
+  } else {
+    tc.className = 'note note-danger';
+    tc.innerHTML = `<span>⚠</span><span>Chênh lệch: tổng ${state.lines.length} dòng = <b>${fmtVND(sum)}</b> ₫, Invoice Total = <b>${fmtVND(m.invoiceTotal)}</b> ₫, lệch <b>${fmtVND(diff)}</b> ₫. Có thể có dòng bị miss hoặc bắt thừa — kiểm tra lại PDF.</span>`;
+  }
+}
+
+function isLineModifiedFromMapping(ln){
+  if (!ln.code) return false;
+  const m = getAllMappings()[ln.code];
+  if (!m) return false;
+  return ln.kenh !== m.kenh || ln.market !== m.market || ln.product !== m.product || ln.project !== m.project;
+}
+
+function renderTable(){
+  const all = getAllMappings();
+  const codes = Object.keys(all).sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  const tb = document.getElementById('tbody');
+  const rows = state.lines.map((ln, i) => {
+    // Refresh name based on current mapping (in case mapping was edited)
+    if (ln.code && all[ln.code]){
+      ln.name = all[ln.code].name;
+    }
+    const needs = !ln.code;
+    const modified = isLineModifiedFromMapping(ln);
+    const trCls = [needs?'attn':'', ln.isInstagram?'insta':'', modified?'modified':''].filter(Boolean).join(' ');
+    const codeOptions = ['<option value="">-- Chọn mã --</option>']
+      .concat(codes.map(c => `<option value="${escapeHtml(c)}" ${c===ln.code?'selected':''}>${escapeHtml(c)}</option>`))
+      .concat(['<option value="__new__">+ Thêm mã mới...</option>'])
+      .join('');
+    const saveBtn = modified
+      ? `<button class="tr-btn warn" onclick="saveLineToCatalog(${i})" title="Lưu cấu hình này làm mặc định cho mã &quot;${escapeHtml(ln.code)}&quot;">💾</button>`
+      : '';
+    const prefixBadge = ln.prefix
+      ? `<span style="display:inline-block;background:var(--info-bg);color:var(--info);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-right:6px;border:0.5px solid var(--info-b)">${escapeHtml(ln.prefix)}</span>`
+      : '';
+    return `<tr class="${trCls}" data-idx="${i}">
+      <td class="row-n" title="Dòng #${ln.pdfLineNum} trong PDF${modified?' · ĐÃ SỬA so với danh mục':''}${needs?' · CHƯA CÓ MÃ DV':''}${ln.prefix?' · '+ln.prefix:''}">${ln.idx}</td>
+      <td title="${escapeHtml(ln.adAccountId)}${ln.prefix?' · '+escapeHtml(ln.prefix):''}">${prefixBadge}${escapeHtml(ln.adAccountName)}</td>
+      <td><select class="${needs?'attn':''}" onchange="onCodeChange(${i}, this.value)">${codeOptions}</select></td>
+      <td class="cell-readonly">${escapeHtml(ln.name||'—')}</td>
+      <td class="num">${fmtVND(ln.amount)}</td>
+      <td><select onchange="onFieldChange(${i},'kenh',this.value)">
+        <option ${ln.kenh==='B2C'?'selected':''}>B2C</option>
+        <option ${ln.kenh==='B2B'?'selected':''}>B2B</option>
+        <option ${ln.kenh==='Đa Kênh'?'selected':''}>Đa Kênh</option>
+      </select></td>
+      <td><select onchange="onFieldChange(${i},'market',this.value)">
+        <option ${ln.market==='VN'?'selected':''}>VN</option>
+        <option ${ln.market==='TL'?'selected':''}>TL</option>
+        <option ${ln.market==='ID'?'selected':''}>ID</option>
+        <option ${ln.market==='KR'?'selected':''}>KR</option>
+        <option ${ln.market==='JP'?'selected':''}>JP</option>
+        <option ${ln.market==='HK'?'selected':''}>HK</option>
+        <option ${ln.market==='INT'?'selected':''}>INT</option>
+      </select></td>
+      <td><select onchange="onFieldChange(${i},'product',this.value)">
+        <option ${ln.product==='All'?'selected':''}>All</option>
+        <option ${ln.product==='IELTS'?'selected':''}>IELTS</option>
+        <option ${ln.product==='TOEIC'?'selected':''}>TOEIC</option>
+        <option ${ln.product==='HSK'?'selected':''}>HSK</option>
+        <option ${ln.product==='VSTEP'?'selected':''}>VSTEP</option>
+        <option ${ln.product==='Preptalk'?'selected':''}>Preptalk</option>
+        <option ${ln.product==='IELT JUNIOR'?'selected':''}>IELT JUNIOR</option>
+        <option ${ln.product==='APTIS'?'selected':''}>APTIS</option>
+        <option ${ln.product==='TOEFL'?'selected':''}>TOEFL</option>
+        <option ${ln.product==='SAT'?'selected':''}>SAT</option>
+        <option ${ln.product==='AET'?'selected':''}>AET</option>
+        <option ${ln.product==='OTH'?'selected':''}>OTH</option>
+      </select></td>
+      <td><select onchange="onFieldChange(${i},'project',this.value)">
+        <option ${ln.project==='Ưu đãi'?'selected':''}>Ưu đãi</option>
+        <option ${ln.project==='Chung'?'selected':''}>Chung</option>
+        <option ${ln.project==='Không ưu đãi'?'selected':''}>Không ưu đãi</option>
+      </select></td>
+      <td>
+        ${saveBtn}
+        <button class="tr-btn danger" onclick="deleteRow(${i})" title="Xoá dòng">✕</button>
+      </td>
+    </tr>`;
+  });
+  tb.innerHTML = rows.join('');
+  renderKPIs();
+  updateSaveChangesButton();
+}
+
+function updateSaveChangesButton(){
+  const modifiedCount = state.lines.filter(isLineModifiedFromMapping).length;
+  const btn = document.getElementById('btn-save-changes');
+  if (modifiedCount > 0){
+    btn.textContent = `💾 Lưu ${modifiedCount} dòng đã sửa vào danh mục`;
+    btn.style.display = 'inline-flex';
+  } else {
+    btn.textContent = '💾 Lưu thay đổi vào danh mục';
+    btn.style.display = 'none';
+  }
+}
+
+function renderKPIs(){
+  const total = state.lines.length;
+  const sum = state.lines.reduce((s,l) => s+l.amount, 0);
+  const unknown = state.lines.filter(l => !l.code).length;
+  const firstNum = state.lines.length ? state.lines[0].pdfLineNum : '—';
+  const lastNum = state.lines.length ? state.lines[state.lines.length-1].pdfLineNum : '—';
+
+  // Breakdown theo prefix (Facebook nếu không có prefix)
+  const byPrefix = {};
+  for (const l of state.lines){
+    const key = l.prefix || 'Facebook';
+    byPrefix[key] = (byPrefix[key] || 0) + 1;
+  }
+  const prefixList = Object.keys(byPrefix).sort().map(k => `${escapeHtml(k)}: <b>${byPrefix[k]}</b>`).join(' · ');
+
+  const html = `
+    <div class="kpi-c ok"><div class="kpi-l">Số dòng quét sequential</div><div class="kpi-v">${total} <span style="font-size:12px;color:var(--text-2);font-weight:400">(#${firstNum}→#${lastNum})</span></div></div>
+    <div class="kpi-c" style="grid-column:span 2"><div class="kpi-l">Phân loại theo nguồn</div><div class="kpi-v" style="font-size:13px;font-weight:500;line-height:1.4">${prefixList || '—'}</div></div>
+    <div class="kpi-c ${unknown===0?'ok':'danger'}"><div class="kpi-l">Chưa có mã DV</div><div class="kpi-v">${unknown}</div></div>
+    <div class="kpi-c ${sum===(state.metadata.invoiceTotal||0)?'ok':'warn'}"><div class="kpi-l">Tổng thành tiền</div><div class="kpi-v">${fmtVND(sum)}</div></div>
+  `;
+  document.getElementById('kpi').innerHTML = html;
+
+  const alertEl = document.getElementById('attn-alert');
+  const parts = [];
+  if (unknown > 0){
+    parts.push(`<div class="note note-danger note-action">
+      <div><b>⚠ Có ${unknown} dòng chưa có mã dịch vụ.</b> Tool không biết các dòng này thuộc mã nào, cần bạn xác định thủ công. File Excel chỉ xuất được khi tất cả đã có mã.</div>
+      <button class="btn btn-sm btn-warn" onclick="startUnknownQueue()">Điền mã cho ${unknown} dòng này ↗</button>
+    </div>`);
+  } else {
+    parts.push(`<div class="note note-success"><span>✓</span><span>Tất cả <b>${total} dòng</b> đã có mã dịch vụ. Sẵn sàng xuất Excel.</span></div>`);
+  }
+  if (state.diag){
+    const d = state.diag;
+    let diagMsg = `Đã quét <b>${d.totalLines}</b> dòng text từ PDF. Nhận diện <b>${d.matchedSequential}</b> dòng line-item sequential (#1 → #${d.matchedSequential}).`;
+    if (d.merged > 0) diagMsg += ` Trong đó <b>${d.merged}</b> dòng đã được gộp từ text wrap.`;
+    if (d.duplicates > 0) diagMsg += ` Bỏ qua <b>${d.duplicates}</b> dòng trùng.`;
+    if (d.outOfSequence.length > 0) diagMsg += ` Bỏ qua <b>${d.outOfSequence.length}</b> dòng out-of-sequence.`;
+    parts.push(`<div class="note note-info"><span>ℹ</span><span>${diagMsg}</span></div>`);
+  }
+  alertEl.innerHTML = parts.join('');
+}
+
+/* ---------- ROW EDITING ---------- */
+function onCodeChange(i, val){
+  if (val === '__new__'){
+    openModalForLine(i);
+    renderTable();
+    return;
+  }
+  const ln = state.lines[i];
+  ln.code = val || null;
+  if (ln.code){
+    const m = getAllMappings()[ln.code];
+    if (m){
+      ln.name = m.name;
+      ln.kenh = m.kenh;
+      ln.market = m.market;
+      ln.product = m.product;
+      ln.project = m.project;
+    }
+  } else {
+    ln.name = ''; ln.kenh = ''; ln.market = ''; ln.product = ''; ln.project = '';
+  }
+  renderTable();
+}
+function onFieldChange(i, field, val){
+  state.lines[i][field] = val;
+  renderTable();
+}
+function deleteRow(i){
+  if (!confirm('Xoá dòng này? (sẽ không xuất vào Excel)')) return;
+  state.lines.splice(i, 1);
+  state.lines.forEach((l, idx) => l.idx = idx + 1);
+  renderTable();
+  renderInvoiceInfo();
+}
+
+/* Lưu 1 dòng vào catalog */
+function saveLineToCatalog(i){
+  const ln = state.lines[i];
+  if (!ln.code){ alert('Dòng này chưa có mã dịch vụ.'); return; }
+  const current = getAllMappings()[ln.code];
+  if (!confirm(
+    `Cập nhật mã "${ln.code}" trong danh mục với cấu hình:\n\n` +
+    `• Kênh: ${current?.kenh || '-'} → ${ln.kenh}\n` +
+    `• Thị trường: ${current?.market || '-'} → ${ln.market}\n` +
+    `• Sản phẩm: ${current?.product || '-'} → ${ln.product}\n` +
+    `• Dự án: ${current?.project || '-'} → ${ln.project}\n\n` +
+    `Các dòng khác cùng mã sẽ được cập nhật theo. Tiếp tục?`
+  )) return;
+  const name = current?.name || ln.name || ln.code;
+  state.customMappings[ln.code] = {
+    name, kenh: ln.kenh, market: ln.market, product: ln.product, project: ln.project
+  };
+  saveCustomMappings();
+  // Apply to all other lines with same code
+  for (const other of state.lines){
+    if (other.code === ln.code && other !== ln){
+      other.name = name;
+      other.kenh = ln.kenh;
+      other.market = ln.market;
+      other.product = ln.product;
+      other.project = ln.project;
+    }
+  }
+  refreshMappingsCount();
+  renderTable();
+}
+
+/* Lưu TẤT CẢ thay đổi vào catalog */
+function saveAllModifiedToCatalog(){
+  const modified = state.lines.filter(isLineModifiedFromMapping);
+  if (modified.length === 0){ alert('Không có dòng nào thay đổi so với danh mục.'); return; }
+  // Group by code, detect conflicts
+  const byCode = {};
+  for (const ln of modified){
+    if (!byCode[ln.code]) byCode[ln.code] = [];
+    byCode[ln.code].push(ln);
+  }
+  const conflicts = [];
+  for (const code in byCode){
+    const group = byCode[code];
+    const first = group[0];
+    for (const other of group.slice(1)){
+      if (other.kenh !== first.kenh || other.market !== first.market || other.product !== first.product || other.project !== first.project){
+        conflicts.push(code);
+        break;
+      }
+    }
+  }
+  let confirmMsg = `Cập nhật danh mục cho ${Object.keys(byCode).length} mã dịch vụ dựa trên các dòng đã sửa.`;
+  if (conflicts.length > 0){
+    confirmMsg += `\n\n⚠ Chú ý: các mã sau có nhiều dòng với cấu hình KHÁC NHAU, tool sẽ dùng cấu hình của dòng đầu tiên:\n- ${conflicts.join('\n- ')}`;
+  }
+  confirmMsg += '\n\nTiếp tục?';
+  if (!confirm(confirmMsg)) return;
+
+  for (const code in byCode){
+    const first = byCode[code][0];
+    const existing = getAllMappings()[code];
+    state.customMappings[code] = {
+      name: existing?.name || first.name || code,
+      kenh: first.kenh, market: first.market, product: first.product, project: first.project
+    };
+  }
+  saveCustomMappings();
+  // Apply to all lines (so non-modified lines become consistent with new mapping)
+  const all = getAllMappings();
+  for (const ln of state.lines){
+    if (ln.code && all[ln.code]){
+      const m = all[ln.code];
+      ln.kenh = m.kenh; ln.market = m.market; ln.product = m.product; ln.project = m.project;
+    }
+  }
+  refreshMappingsCount();
+  renderTable();
+  alert(`Đã lưu ${Object.keys(byCode).length} mã dịch vụ vào danh mục. Các lần quét PDF sau sẽ tự động dùng giá trị mới.`);
+}
+
+/* ---------- MODAL (unified) ---------- */
+function openModalForLine(idx){
+  modalMode = 'new-line';
+  modalEditKey = null;
+  modalTargetIdx = idx;
+  const ln = state.lines[idx];
+  const titleEl = document.getElementById('modal-title');
+  const introEl = document.getElementById('modal-intro');
+  titleEl.className = 'warn-title';
+  titleEl.textContent = pendingUnknowns.length > 0
+    ? `Mã dịch vụ mới phát hiện (còn ${pendingUnknowns.length + 1} dòng)`
+    : `Mã dịch vụ mới phát hiện`;
+  introEl.classList.remove('hidden');
+  introEl.innerHTML =
+    `Dòng PDF #${ln.pdfLineNum}${ln.prefix?' ('+escapeHtml(ln.prefix)+')':''}: <b>${escapeHtml(ln.adAccountName)}</b><br>` +
+    `Số tiền: <b>${fmtVND(ln.amount)} ₫</b><br>` +
+    `<span style="color:var(--text-3);font-size:12px;margin-top:6px;display:block">Tool chưa nhận diện được mã dịch vụ. Hãy chọn/tạo mã để các dòng cùng tên sẽ tự động áp dụng. Tool sẽ ghi nhớ cho các lần quét sau.</span>`;
+  // Reset form
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-code').readOnly = false;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-kenh').value = 'B2C';
+  document.getElementById('f-market').value = /th[aáà]i/i.test(ln.adAccountName) ? 'TL' : 'VN';
+  document.getElementById('f-product').value = 'All';
+  document.getElementById('f-project').value = 'Không ưu đãi';
+  document.getElementById('btn-modal-skip').classList.toggle('hidden', pendingUnknowns.length === 0);
+  document.getElementById('btn-modal-save').textContent = 'Lưu mã dịch vụ';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-code').focus(), 50);
+}
+
+function openModalNew(){
+  modalMode = 'new-standalone';
+  modalEditKey = null;
+  modalTargetIdx = null;
+  const titleEl = document.getElementById('modal-title');
+  titleEl.className = 'info-title';
+  titleEl.textContent = 'Thêm mã dịch vụ mới vào danh mục';
+  document.getElementById('modal-intro').classList.add('hidden');
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-code').readOnly = false;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-kenh').value = 'B2C';
+  document.getElementById('f-market').value = 'VN';
+  document.getElementById('f-product').value = 'All';
+  document.getElementById('f-project').value = 'Không ưu đãi';
+  document.getElementById('btn-modal-skip').classList.add('hidden');
+  document.getElementById('btn-modal-save').textContent = 'Thêm vào danh mục';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-code').focus(), 50);
+}
+
+function openModalEdit(key){
+  const mapping = getAllMappings()[key];
+  if (!mapping) return;
+  modalMode = 'edit';
+  modalEditKey = key;
+  modalTargetIdx = null;
+  const titleEl = document.getElementById('modal-title');
+  titleEl.className = 'info-title';
+  titleEl.textContent = `Sửa mã dịch vụ: ${key}`;
+  document.getElementById('modal-intro').classList.remove('hidden');
+  const isDefault = DEFAULT_MAPPINGS[key] !== undefined;
+  document.getElementById('modal-intro').innerHTML = isDefault
+    ? `Đang sửa mã <b>mặc định</b> "${escapeHtml(key)}". Thay đổi sẽ tạo bản ghi override lưu trong trình duyệt. Có thể xoá override để trở về giá trị mặc định.`
+    : `Đang sửa mã <b>tuỳ chỉnh</b> "${escapeHtml(key)}".`;
+  document.getElementById('f-code').value = key;
+  document.getElementById('f-code').readOnly = true;
+  document.getElementById('f-name').value = mapping.name || '';
+  document.getElementById('f-kenh').value = mapping.kenh || 'B2C';
+  document.getElementById('f-market').value = mapping.market || 'VN';
+  document.getElementById('f-product').value = mapping.product || 'All';
+  document.getElementById('f-project').value = mapping.project || 'Không ưu đãi';
+  document.getElementById('btn-modal-skip').classList.add('hidden');
+  document.getElementById('btn-modal-save').textContent = 'Lưu thay đổi';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(), 50);
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  // If canceling during a queue, clear queue (user's choice to exit)
+  if (modalMode === 'new-line' && pendingUnknowns.length > 0){
+    if (confirm(`Còn ${pendingUnknowns.length} dòng chưa xác định. Thoát hoàn toàn? (Có thể bấm "Điền mã" trong bảng để tiếp tục sau)`)){
+      pendingUnknowns = [];
+    } else {
+      document.getElementById('modal').classList.add('open');
+      return;
+    }
+  }
+  modalMode = null;
+  modalEditKey = null;
+  modalTargetIdx = null;
+}
+
+function skipModal(){
+  // Skip current line, continue queue
+  document.getElementById('modal').classList.remove('open');
+  nextUnknownInQueue();
+}
+
+function saveModal(){
+  const code = document.getElementById('f-code').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const kenh = document.getElementById('f-kenh').value;
+  const market = document.getElementById('f-market').value;
+  const product = document.getElementById('f-product').value;
+  const project = document.getElementById('f-project').value;
+  if (!code || !name){
+    alert('Vui lòng nhập Mã dịch vụ và Tên dịch vụ.');
+    return;
+  }
+
+  if (modalMode === 'edit'){
+    // Update existing mapping (creates override if default)
+    state.customMappings[modalEditKey] = { name, kenh, market, product, project };
+    saveCustomMappings();
+    refreshMappingsCount();
+    if (state.lines.length > 0){
+      // Apply to lines with this code
+      for (const ln of state.lines){
+        if (ln.code === modalEditKey){
+          ln.name = name; ln.kenh = kenh; ln.market = market; ln.product = product; ln.project = project;
+        }
+      }
+      renderTable();
+    }
+    document.getElementById('modal').classList.remove('open');
+    modalMode = null; modalEditKey = null;
+    return;
+  }
+
+  // new-line or new-standalone
+  // Check if code already exists
+  if (getAllMappings()[code] !== undefined && modalMode === 'new-standalone'){
+    if (!confirm(`Mã "${code}" đã tồn tại trong danh mục. Ghi đè bằng giá trị mới?`)) return;
+  }
+  state.customMappings[code] = { name, kenh, market, product, project };
+  saveCustomMappings();
+  refreshMappingsCount();
+
+  if (modalMode === 'new-line' && modalTargetIdx !== null){
+    const targetLn = state.lines[modalTargetIdx];
+    const targetName = targetLn.adAccountName;
+    // Apply to all lines with this adAccountName that are unmapped
+    for (const ln of state.lines){
+      if (!ln.code && ln.adAccountName === targetName){
+        ln.code = code;
+        ln.name = name; ln.kenh = kenh; ln.market = market; ln.product = product; ln.project = project;
+      }
+    }
+    renderTable();
+    document.getElementById('modal').classList.remove('open');
+    // Continue queue
+    setTimeout(() => nextUnknownInQueue(), 200);
+  } else {
+    // new-standalone from settings
+    if (state.lines.length > 0) renderTable();
+    document.getElementById('modal').classList.remove('open');
+    modalMode = null; modalTargetIdx = null;
+  }
+}
+
+/* ---------- EXPORT ---------- */
+function buildExportRows(){
+  const m = state.metadata;
+  return state.lines.map(ln => {
+    const amount = ln.amount || 0;
+    return [
+      FIXED.paymentMethod, FIXED.withInvoice, FIXED.isPurchase,
+      m.dateStr, m.dateStr, m.soChungTu,
+      FIXED.supplier.vat, FIXED.supplier.name, FIXED.supplier.address,
+      m.dienGiai, ln.code || '', ln.name || '',
+      FIXED.tkChiPhi, FIXED.tkCongNo, FIXED.doiTuong,
+      FIXED.dvt, FIXED.soLuong, amount, FIXED.soLuong * amount,
+      FIXED.vatPct, FIXED.vatAmount, FIXED.tkThue,
+      ln.kenh || '', ln.market || '', ln.product || '', ln.project || ''
+    ];
+  });
+}
+
+function validateBeforeExport(){
+  if (state.lines.length === 0){ alert('Không có dòng nào để xuất.'); return false; }
+  const unknown = state.lines.filter(l => !l.code);
+  if (unknown.length > 0){
+    alert(`Còn ${unknown.length} dòng chưa có mã dịch vụ. Hãy chọn mã trước khi xuất.`);
+    return false;
+  }
+  return true;
+}
+
+function exportXlsx(){
+  if (!validateBeforeExport()) return;
+  showProc('Đang tạo file Excel...');
+  setTimeout(() => {
+    try{
+      const m = state.metadata;
+      const dataRows = buildExportRows();
+      const aoa = [];
+      aoa.push(['FILE MẪU CHỨNG TỪ MUA DỊCH VỤ ĐỂ NHẬP VÀO PHẦN MỀM AMIS ACCOUNTING']);
+      aoa.push(['Hướng dẫn:']);
+      aoa.push(['- Điền dữ liệu vào các cột tương ứng trên file này']);
+      aoa.push(['- Các cột có dấu (*) là những cột bắt buộc']);
+      aoa.push(['- Nếu muốn nhập nhiều thông tin hơn người dùng có thể tải mẫu đầy đủ/hoặc tự thêm cột trên mẫu cơ bản']);
+      aoa.push(['- Các dòng dữ liệu phía dưới chỉ là ví dụ minh họa']);
+      const grpRow = new Array(26).fill(null);
+      grpRow[10] = 'Chi tiết hàng tiền';
+      grpRow[19] = 'Chi tiết Thuế';
+      aoa.push(grpRow);
+      aoa.push([
+        'Phương thức thanh toán','Nhận kèm hóa đơn','Là CP mua hàng','Ngày hạch toán (*)','Ngày chứng từ (*)',
+        'Số chứng từ (*)','Nhà cung cấp','Tên nhà cung cấp','Địa chỉ','Diễn giải/Lý do chi/Nội dung thanh toán',
+        'Mã dịch vụ (*)','Tên dịch vụ','TK kho/TK chi phí (*)','TK công nợ/TK tiền (*)','Mã đối tượng',
+        'ĐVT','Số lượng','Đơn giá','Thành tiền','% thuế GTGT','Tiền thuế GTGT','TK thuế GTGT',
+        'Kênh','Thị trường','Sản phẩm','Dự án'
+      ]);
+      for (const r of dataRows) aoa.push(r);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!merges'] = (ws['!merges'] || []).concat([
+        { s: {r:6, c:10}, e: {r:6, c:18} },
+        { s: {r:6, c:19}, e: {r:6, c:25} }
+      ]);
+      ws['!cols'] = [
+        {wch:18},{wch:18},{wch:13},{wch:13},{wch:13},
+        {wch:13},{wch:13},{wch:28},{wch:40},{wch:30},
+        {wch:14},{wch:30},{wch:12},{wch:13},{wch:14},
+        {wch:6},{wch:8},{wch:14},{wch:14},{wch:10},
+        {wch:12},{wch:12},{wch:10},{wch:10},{wch:14},{wch:14}
+      ];
+      const startDataRow = 8;
+      for (let i = 0; i < dataRows.length; i++){
+        const r = startDataRow + i;
+        const cellR = XLSX.utils.encode_cell({r, c:17});
+        const cellS = XLSX.utils.encode_cell({r, c:18});
+        if (ws[cellR]){ ws[cellR].z = '#,##0'; ws[cellR].t = 'n'; }
+        if (ws[cellS]){ ws[cellS].z = '#,##0'; ws[cellS].t = 'n'; }
+      }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, m.sheetName);
+      const refAoa = [
+        ['Mã dịch vụ','Tên dịch vụ','','','','','','Kênh','Thị trường','Sản phẩm','Dự án']
+      ];
+      const allMaps = getAllMappings();
+      Object.keys(allMaps).sort().forEach(k => {
+        const v = allMaps[k];
+        refAoa.push([k, v.name, '','','','','', v.kenh, v.market, v.product, v.project]);
+      });
+      const refWs = XLSX.utils.aoa_to_sheet(refAoa);
+      refWs['!cols'] = [{wch:16},{wch:36},{wch:4},{wch:4},{wch:4},{wch:4},{wch:4},{wch:10},{wch:12},{wch:14},{wch:16}];
+      XLSX.utils.book_append_sheet(wb, refWs, 'Danh muc');
+      const outName = `Meta_Import_${m.sheetName}_${m.year}_${m.invoiceNumber}.xlsx`;
+      XLSX.writeFile(wb, outName);
+      hideProc();
+    }catch(err){
+      hideProc();
+      console.error(err);
+      alert('Lỗi xuất Excel: ' + err.message);
+    }
+  }, 100);
+}
+
+function previewJson(){
+  const data = { metadata: state.metadata, lines: state.lines, exportRows: buildExportRows() };
+  const w = window.open();
+  w.document.write('<pre style="font-family:monospace;font-size:11px;padding:16px">'+escapeHtml(JSON.stringify(data, null, 2))+'</pre>');
+}
+
+function resetAll(){
+  if (!confirm('Xoá dữ liệu hiện tại và xử lý hoá đơn khác?')) return;
+  state.metadata = null;
+  state.lines = [];
+  state.fileName = '';
+  state.diag = null;
+  pendingUnknowns = [];
+  document.getElementById('file').value = '';
+  document.getElementById('s2').classList.add('hidden');
+  document.getElementById('s3').classList.add('hidden');
+  document.getElementById('s4').classList.add('hidden');
+  setStep(1);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ---------- DRAG & DROP ---------- */
+function initDnD(){
+  const dz = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+  ['dragenter','dragover'].forEach(ev => {
+    dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(ev => {
+    dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag'); });
+  });
+  dz.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+}
+
+/* ---------- INIT ---------- */
+loadCustomMappings();
+refreshMappingsCount();
+initDnD();
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('modal').classList.contains('open')) closeModal();
+});
+</script>
+</body>
+</html>

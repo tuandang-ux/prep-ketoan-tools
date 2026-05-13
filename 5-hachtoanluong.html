@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Import Chi phí Lương - PREP Kế toán</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #f5f1e8;
+    --bg-card: #fdfbf5;
+    --ink: #1c1917;
+    --ink-muted: #6b6257;
+    --accent: #0a3622;
+    --accent-warm: #8b4513;
+    --rule: #d6ceb9;
+    --error: #991b1b;
+    --warn: #92400e;
+    --warn-bg: #fef3c7;
+    --success: #14532d;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .serif { font-family: var(--font-display); }
+  .btn-primary {
+    background: var(--accent); color: #f5f1e8;
+    padding: 0.75rem 1.5rem; font-weight: 500;
+    border-radius: 0; transition: all 0.15s;
+    letter-spacing: 0.02em; border: none; cursor: pointer;
+  }
+  .btn-primary:hover { background: #0d4a2f; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--ink);
+    padding: 0.5rem 1rem; border: 1px solid var(--rule); cursor: pointer;
+  }
+  .btn-ghost:hover { background: var(--bg-card); }
+  .btn-danger {
+    background: transparent; color: var(--error);
+    padding: 0.5rem 1rem; border: 1px solid var(--error); cursor: pointer;
+    font-size: 0.75rem;
+  }
+  .btn-danger:hover { background: #fee2e2; }
+  .dropzone { border: 2px dashed var(--rule); transition: all 0.2s; }
+  .dropzone.active { border-color: var(--accent); background: var(--bg-card); }
+  .card { background: var(--bg-card); border: 1px solid var(--rule); }
+  .card-warn { background: var(--warn-bg); border: 1px solid var(--warn); }
+  .tag {
+    display: inline-block; padding: 0.15rem 0.5rem;
+    font-size: 0.7rem; letter-spacing: 0.05em;
+    text-transform: uppercase; border: 1px solid currentColor;
+  }
+  .loader {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 100; font-family: var(--font-display);
+    font-size: 1.25rem; color: var(--accent);
+  }
+  input[type="text"], input[type="number"] {
+    background: transparent; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--rule); font-family: var(--font-mono);
+    font-size: 0.85rem; color: var(--ink); outline: none;
+    width: 100%;
+  }
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--accent);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.25rem 0.6rem; font-size: 0.75rem;
+    background: var(--bg-card); border: 1px solid var(--rule);
+    font-family: var(--font-mono);
+  }
+  .chip.selected { background: var(--accent); color: #f5f1e8; border-color: var(--accent); }
+  .chip.selectable { cursor: pointer; }
+  .chip.selectable:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="loader" class="loader">Đang tải tool...</div>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useCallback, useEffect } = React;
+
+/* =====================================================================
+   BUILT-IN RULES
+   ===================================================================== */
+// Standard meta presets for Kênh/Dự án/Sản phẩm/Thị trường
+const META_BACKOFFICE = { kenh: 'Đa kênh', duAn: 'Chung', sanPham: 'All', thiTruong: 'VN' };
+const META_VN_B2C = { kenh: 'B2C', duAn: 'Chung', sanPham: 'All', thiTruong: 'VN' };
+const META_VN_B2B = { kenh: 'B2B', duAn: 'Chung', sanPham: 'All', thiTruong: 'VN' };
+const META_INT_TL = { kenh: 'B2C', duAn: 'Chung', sanPham: 'All', thiTruong: 'TL' };
+const META_INT_TW = { kenh: 'B2C', duAn: 'Chung', sanPham: 'All', thiTruong: 'TW' };
+const META_LS_IELTS = { kenh: 'B2C', duAn: 'Ưu đãi', sanPham: 'IELTS', thiTruong: 'VN' };
+const META_LS_TOEIC = { kenh: 'B2C', duAn: 'Ưu đãi', sanPham: 'TOEIC', thiTruong: 'VN' };
+const META_LS_HSK = { kenh: 'B2C', duAn: 'Ưu đãi', sanPham: 'HSK', thiTruong: 'VN' };
+const META_LS_PTEN = { kenh: 'B2C', duAn: 'Ưu đãi', sanPham: 'Preptalk', thiTruong: 'VN' };
+const META_LS_IELTS_JUNIOR = { kenh: 'B2C', duAn: 'Không ưu đãi', sanPham: 'IELT JUNIOR', thiTruong: 'VN' };
+
+// Autocomplete suggestions for wizard
+const KENH_OPTIONS = ['Đa kênh', 'B2C', 'B2B'];
+const DUAN_OPTIONS = ['Chung', 'Ưu đãi', 'Không ưu đãi'];
+const SANPHAM_OPTIONS = ['All', 'IELTS', 'TOEIC', 'HSK', 'Preptalk', 'IELT JUNIOR'];
+const THITRUONG_OPTIONS = ['VN', 'TL', 'TW'];
+
+const BUILTIN_FULLTIME_RULES = [
+  { match: 'Bộ Phận Quản Lý', misa: 'BP quản lý', tk: '64211', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Ban Kiểm soát', misa: 'BP BKS', tk: '64212', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ Phận HR - Admin', misa: 'BP HR-ADMIN', tk: '64212', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Kế toán', misa: 'BP Kế toán', tk: '64212', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Tài chính', misa: 'BP Tài chính', tk: '64212', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Media Design', misa: 'BP Media Design', tk: '64113', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Video Production', misa: 'BP Video Production', tk: '64115', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Product Content', misa: 'BP Product Content', tk: '6226', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận International 1', misa: 'BP International 1', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_INT_TL },
+  { match: 'Bộ phận International 2', misa: 'BP International 2', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_INT_TW },
+  { match: 'Bộ phận International Cluster 1', misa: 'BP International Cluster 1', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_INT_TL },
+  { match: 'Bộ phận International Cluster 2', misa: 'BP International Cluster 2', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_INT_TW },
+  { match: 'Team Social Marketing', misa: 'BP VN1-Social MKT', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_VN_B2C },
+  { match: 'Team Digital Marketing', misa: 'BP VN1-Digital Marketing', tk: '64113', tkHH: '64114', kind: 'kinhdoanh', ...META_VN_B2C },
+  { match: 'Team PR & Event', misa: 'BP VN2-PR & Event', tk: '64115', tkHH: '64116', kind: 'kinhdoanh', ...META_VN_B2C },
+  { match: 'Team Community', misa: 'BP VN2-Community', tk: '64115', tkHH: '64116', kind: 'kinhdoanh', ...META_VN_B2C },
+  { match: 'Team C&P', misa: 'BP VN2-C&P', tk: '64115', tkHH: '64116', kind: 'kinhdoanh', ...META_VN_B2C },
+  { match: 'Team BD Hà Nội', misa: 'BP VN2-BD HN', tk: '64111', tkHH: '64116', kind: 'kinhdoanh', ...META_VN_B2B },
+  { match: 'Team BD HCM', misa: 'BP VN2-BD HCM', tk: '64111', tkHH: '64116', kind: 'kinhdoanh', ...META_VN_B2B },
+  { match: 'Bộ phận TECH', misa: 'BP Tech - VẬN HÀNH KHỐI CN', tk: '6226', kind: 'backoffice_direct', ...META_BACKOFFICE },
+  { match: 'Team R&D Tech', misa: 'BP Tech - R&D', tk: ['6225', '6226'], kind: 'split_50_50', ...META_BACKOFFICE },
+  { match: 'Bộ phận AI Hà Nội', misa: 'BP AI HN', tk: '6225', kind: 'backoffice_direct', ...META_BACKOFFICE },
+  { match: 'Team R&D AI Hà Nội', misa: 'BP AI HN - R&D', tk: '6225', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận AI Đà Nẵng', misa: 'BP AI ĐÀ NẴNG', tk: '6225', kind: 'backoffice_direct', ...META_BACKOFFICE },
+  { match: 'Team R&D AI Đà Nẵng', misa: 'BP AI ĐÀ NẴNG - R&D', tk: '6225', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Bộ phận Product', misa: 'BP Product - VẬN HÀNH KHỐI CN', tk: '6228', kind: 'backoffice_direct', ...META_BACKOFFICE },
+  { match: 'Team R&D Product', misa: 'BP Product - R&D', tk: '6227', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team R&D ACA', kind: 'aca_rd_special',
+    misa: 'BP ACA - R&D', tk: '6223',
+    specialMisa: 'BP ACA - vận hành quản lý của ACA (cô Trang+cô Chi)', specialTk: '6224',
+    highMgrs: ['F0063', 'F0172'],
+    ...META_BACKOFFICE },
+  { match: 'Team Quản lý', misa: 'BP ACA - Quản lí', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team AO Tiếng Anh', misa: 'BP ACA - AO tiếng anh', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE, sanPham: 'English' },
+  { match: 'Team AO Tiếng Trung', misa: 'BP ACA - AO tiếng trung', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE, duAn: 'Ưu đãi', sanPham: 'HSK' },
+  { match: 'Team Video Editor', misa: 'BP ACA - video editor', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team APTIS', misa: 'BP ACA - aptis', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE, duAn: 'Không ưu đãi', sanPham: 'Aptis' },
+  { match: 'Team Learning Design', misa: 'BP ACA - Learning Design', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team Học thuật', misa: 'BP ACA - Học thuật', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team TOEIC x Rikkei', misa: 'BP ACA - Toeic Rikkei', tk: '6224', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team Chấm bài', misa: 'BP ACA - chấm bài', tk: '6222', kind: 'backoffice', ...META_BACKOFFICE },
+  { match: 'Team IE HN Tư vấn tuyển sinh', misa: 'BP LS - IELTS - tư vấn tuyển sinh', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_IELTS },
+  { match: 'Team IE HN Hỗ trợ học viên', misa: 'BP LS - IELTS - hỗ trợ học viên', tk: '6221', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_IELTS },
+  { match: 'Team TOE HN Tư vấn tuyển sinh', misa: 'BP LS - TOEIC - tư vấn tuyển sinh', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_TOEIC },
+  { match: 'Team TOE HN Hỗ trợ học viên', misa: 'BP LS - TOEIC - hỗ trợ học viên', tk: '6221', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_TOEIC },
+  { match: 'Team PTEn Tư vấn tuyển sinh', misa: 'BP LS - PTEn - tư vấn tuyển sinh', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_PTEN },
+  { match: 'Team PTEn Hỗ trợ học viên', misa: 'BP LS - PTEn - hỗ trợ học viên', tk: '6221', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_PTEN },
+  { match: 'Team HSK HN Tư vấn tuyển sinh', misa: 'BP LS - HSK - tư vấn tuyển sinh', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_HSK },
+  { match: 'Team HSK HN Hỗ trợ học viên', misa: 'BP LS - HSK - hỗ trợ học viên', tk: '6221', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_HSK },
+  { match: 'Team IELTS JUNIOR HN Tư vẫn tuyển sinh', misa: 'BP LS - IELTS JUNIOR HN', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_IELTS_JUNIOR },
+  { match: 'Team IELTS HCM', misa: 'BP LS - IELTS HCM', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_IELTS },
+  { match: 'Team TOEIC HCM', misa: 'BP LS - TOEIC HCM', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_TOEIC },
+  { match: 'Team HSK HCM', misa: 'BP LS - HSK HCM', tk: '64111', tkHH: '64112', kind: 'kinhdoanh', ...META_LS_HSK },
+];
+
+const BUILTIN_PARTTIME_RULES = [
+  { match: 'Ban Trợ lý', misa: 'BP Ban Trợ lý', tk: '6224', ...META_BACKOFFICE },
+  { match: 'Bộ Phận HR - Admin', misa: 'BP HR-ADMIN', tk: '64212', ...META_BACKOFFICE },
+  { match: 'Bộ phận VN1', misa: 'BP VN1', tk: '64113', ...META_VN_B2C },
+  { match: 'Bộ phận VN2', misa: 'BP VN2', tk: '64115', ...META_VN_B2C },
+  { match: 'Bộ phận International 1', misa: 'BP International 1', tk: '64113', ...META_VN_B2C },
+  { match: 'Bộ phận International 2', misa: 'BP International 2', tk: '64113', ...META_VN_B2C },
+  { match: 'Bộ phận Product', misa: 'BP Product', tk: '6228', ...META_BACKOFFICE },
+  { match: 'Bộ phận Product Content', misa: 'BP Product Content', tk: '6226', ...META_BACKOFFICE },
+  { match: 'Team Tiếng Trung', misa: 'BP ACA - AO tiếng trung', tk: '6224', ...META_BACKOFFICE, duAn: 'Ưu đãi', sanPham: 'HSK' },
+  { match: 'Team TOEIC x Rikkei', misa: 'BP ACA - Toeic Rikkei', tk: '6224', ...META_BACKOFFICE },
+  { match: 'Team Chấm bài', misa: 'BP ACA - chấm bài', tk: '6222', ...META_BACKOFFICE },
+  { match: 'Team IELTS', misa: 'BP LS - IELTS', tk: '64111', ...META_LS_IELTS },
+  { match: 'Team TOEIC', misa: 'BP LS - TOEIC', tk: '64111', ...META_LS_TOEIC },
+  { match: 'Team HSK', misa: 'BP LS - HSK', tk: '64111', ...META_LS_HSK },
+  { match: 'Team PTEn', misa: 'BP LS - PTEn', tk: '64111', ...META_LS_PTEN },
+];
+
+const FT_CONTAINER_NAMES = new Set([
+  'Bộ phận VN1', 'Bộ phận VN2', 'Bộ phận ACA', 'Bộ phận LS',
+  'Chi nhánh Hà Nội', 'Chi nhánh Hồ Chí Minh',
+  'Team IELTS HN', 'Team TOEIC HN', 'Team HSK HN', 'Team PTEn', 'Team IELTS JUNIOR HN',
+]);
+const PT_CONTAINER_NAMES = new Set(['Bộ phận ACA', 'Bộ phận LS']);
+const ACA_RD_HIGH_MGR = new Set(['F0063', 'F0172']);
+
+// Known TK list (suggestions for autocomplete)
+const KNOWN_TK = [
+  '6221', '6222', '6223', '6224', '6225', '6226', '6227', '6228',
+  '64111', '64112', '64113', '64114', '64115', '64116', '64211', '64212',
+];
+
+/* =====================================================================
+   UTILITIES
+   ===================================================================== */
+function normalize(s) { return String(s || '').trim().replace(/\s+/g, ' '); }
+
+// Default column indices (fallback if auto-detect fails)
+const DEFAULT_COLS = {
+  MANV: 1, HOTEN: 2,
+  L_THUONG_KPI: 11,
+  P_TONG_TN: 15,
+  Q_BHXH_DN: 16, R_BHYT_DN: 17, S_BHTN_DN: 18, T_BHTNLD_DN: 19, U_KPCD_DN: 20,
+  V_BHXH_NLD: 21, W_BHYT_NLD: 22, X_BHTN_NLD: 23, Y_KPCD_NLD: 24,
+  AD_TNCN: 29,
+};
+
+// Mutable current column mapping (can be set by auto-detect or user)
+// All legacy consts below reference this object via getters.
+let CURRENT_COLS = { ...DEFAULT_COLS };
+
+// Legacy-compatible references (read from CURRENT_COLS at access time).
+// We use Object.defineProperty so existing code `COL_P` still works.
+const COL_MAPPING = {};
+for (const [k, _] of Object.entries(DEFAULT_COLS)) {
+  const legacy = k === 'MANV' ? 'COL_MANV' : k === 'HOTEN' ? 'COL_HOTEN' :
+    k === 'L_THUONG_KPI' ? 'COL_L' : k === 'P_TONG_TN' ? 'COL_P' :
+    k === 'Q_BHXH_DN' ? 'COL_Q' : k === 'R_BHYT_DN' ? 'COL_R' :
+    k === 'S_BHTN_DN' ? 'COL_S' : k === 'T_BHTNLD_DN' ? 'COL_T' :
+    k === 'U_KPCD_DN' ? 'COL_U' : k === 'V_BHXH_NLD' ? 'COL_V' :
+    k === 'W_BHYT_NLD' ? 'COL_W' : k === 'X_BHTN_NLD' ? 'COL_X' :
+    k === 'Y_KPCD_NLD' ? 'COL_Y' : k === 'AD_TNCN' ? 'COL_AD' : null;
+  if (legacy) COL_MAPPING[legacy] = k;
+}
+
+// Define getters on window (or equivalent scope) so COL_P auto-reflects CURRENT_COLS.P_TONG_TN
+const __colScope = (typeof window !== 'undefined') ? window : globalThis;
+for (const [legacyName, fieldKey] of Object.entries(COL_MAPPING)) {
+  Object.defineProperty(__colScope, legacyName, {
+    get() { return CURRENT_COLS[fieldKey]; },
+    configurable: true,
+  });
+}
+
+function setCurrentColumns(mapping) {
+  CURRENT_COLS = { ...DEFAULT_COLS, ...mapping };
+}
+function resetCurrentColumns() {
+  CURRENT_COLS = { ...DEFAULT_COLS };
+}
+
+/* =====================================================================
+   HEADER-BASED COLUMN AUTO-DETECT
+   ===================================================================== */
+
+// Normalize text: lowercase, remove diacritics, collapse whitespace and newlines.
+function normText(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'd')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Extract percentage number from a text like "BHXH (17%)", "17%", etc.
+function extractPercent(s) {
+  if (!s) return null;
+  const m = /(\d+[.,]?\d*)\s*%/.exec(String(s));
+  if (!m) return null;
+  return parseFloat(m[1].replace(',', '.'));
+}
+
+// Read header rows (6, 7, 8) for each column - returns array of {idx, r6, r7, r8, combined}
+function readHeaders(ws) {
+  const cols = [];
+  const maxCol = 40; // enough for all plausible columns
+  for (let c = 0; c < maxCol; c++) {
+    const r6 = getCellStr(ws, 6, c);
+    const r7 = getCellStr(ws, 7, c);
+    const r8 = getCellStr(ws, 8, c);
+    const combined = normText(`${r6} ${r7} ${r8}`);
+    cols.push({ idx: c, r6, r7, r8, combined, r7norm: normText(r7), r8norm: normText(r8) });
+  }
+  return cols;
+}
+
+// Propagate group headers across merged cells: if row 7 has "Khoản trích tính vào CP" only
+// at col Q, the cols R-U should inherit it. Detect by: walk left until a non-empty r7 text.
+function propagateGroupHeaders(cols) {
+  let lastR7 = '';
+  for (const c of cols) {
+    if (c.r7 && c.r7.trim()) {
+      lastR7 = c.r7;
+    } else if (lastR7 && (c.r8 && c.r8.trim())) {
+      // Inherit group from the left
+      c.r7 = lastR7;
+      c.r7norm = normText(lastR7);
+    }
+  }
+}
+
+// Field definitions with keywords + context disambiguators
+const FIELD_DEFS = [
+  { key: 'MANV', label: 'Mã NV', required: true,
+    keywords: ['ma nv', 'manv', 'ma nhan vien', 'ma so nv', 'ma so nhan vien'],
+    strict: true,
+  },
+  { key: 'HOTEN', label: 'Họ và tên', required: true,
+    keywords: ['ho va ten', 'ho ten', 'ten nv', 'ten nhan vien', 'full name', 'fullname', 'ho & ten'],
+  },
+  { key: 'L_THUONG_KPI', label: 'Thưởng KPI / Hoa hồng', required: true,
+    keywords: ['thuong kpi', 'hoa hong', 'commission'],
+    // Don't match bare 'thuong' - too generic; match specific compound keywords only
+  },
+  { key: 'P_TONG_TN', label: 'Tổng thu nhập', required: true,
+    keywords: ['tong thu nhap', 'tong luong', 'tong tn', 'total income'],
+    // Exclude "tổng thu nhập chịu thuế" / "tổng thu nhập tính thuế" which match
+    excludeKeywords: ['chiu thue', 'tinh thue'],
+  },
+  { key: 'Q_BHXH_DN', label: 'BHXH DN trích (17%)', required: true,
+    keywords: ['bhxh', 'bao hiem xa hoi'],
+    contextGroup: 'khoan trich tinh vao cp',
+    percent: 17,
+  },
+  { key: 'R_BHYT_DN', label: 'BHYT DN trích (3%)', required: true,
+    keywords: ['bhyt', 'bao hiem y te'],
+    contextGroup: 'khoan trich tinh vao cp',
+    percent: 3,
+  },
+  { key: 'S_BHTN_DN', label: 'BHTN DN trích (1%)', required: true,
+    keywords: ['bhtn', 'bao hiem that nghiep'],
+    excludeKeywords: ['bhtnld', 'bnn', 'tai nan'],
+    contextGroup: 'khoan trich tinh vao cp',
+    percent: 1,
+  },
+  { key: 'T_BHTNLD_DN', label: 'BHTNLĐ DN trích (0.5%)', required: true,
+    keywords: ['bhtnld', 'bhtnld, bnn', 'bao hiem tai nan', 'tnld'],
+    contextGroup: 'khoan trich tinh vao cp',
+    percent: 0.5,
+  },
+  { key: 'U_KPCD_DN', label: 'KPCĐ DN trích (2%)', required: true,
+    keywords: ['kpcd', 'kinh phi cong doan'],
+    contextGroup: 'khoan trich tinh vao cp',
+    percent: 2,
+  },
+  { key: 'V_BHXH_NLD', label: 'BHXH NLĐ đóng (8%)', required: true,
+    keywords: ['bhxh', 'bao hiem xa hoi'],
+    contextGroup: 'khoan tru vao luong',
+    percent: 8,
+  },
+  { key: 'W_BHYT_NLD', label: 'BHYT NLĐ đóng (1.5%)', required: true,
+    keywords: ['bhyt', 'bao hiem y te'],
+    contextGroup: 'khoan tru vao luong',
+    percent: 1.5,
+  },
+  { key: 'X_BHTN_NLD', label: 'BHTN NLĐ đóng (1%)', required: true,
+    keywords: ['bhtn', 'bao hiem that nghiep'],
+    excludeKeywords: ['bhtnld', 'bnn', 'tai nan'],
+    contextGroup: 'khoan tru vao luong',
+    percent: 1,
+  },
+  { key: 'Y_KPCD_NLD', label: 'KPCĐ NLĐ (0.5%)', required: true,
+    keywords: ['kpcd', 'kinh phi cong doan'],
+    contextGroup: 'khoan tru vao luong',
+    percent: 0.5,
+  },
+  { key: 'AD_TNCN', label: 'Thuế TNCN', required: true,
+    keywords: ['thue tncn', 'tncn', 'thue thu nhap'],
+  },
+];
+
+// Score a column for a given field. Returns number (higher = better) or -1 (not a match).
+function scoreColumn(col, field) {
+  const text = col.combined;
+  // Exclude keywords: if any match, this column is not this field
+  if (field.excludeKeywords) {
+    for (const ex of field.excludeKeywords) {
+      if (text.includes(ex)) return -1;
+    }
+  }
+  // Keyword presence
+  let kwMatch = false;
+  for (const kw of field.keywords) {
+    if (field.strict) {
+      const kwRegex = new RegExp(`(^|\\s|-|_|\\(|\\|)${kw.replace(/\s+/g, '\\s*')}($|\\s|-|_|\\)|:|\\|)`, 'i');
+      if (kwRegex.test(text)) { kwMatch = true; break; }
+    } else {
+      if (text.includes(kw)) { kwMatch = true; break; }
+    }
+  }
+  if (!kwMatch) return -1;
+  let score = 10; // base
+
+  // Context group match: bonus
+  if (field.contextGroup) {
+    if (col.r7norm && col.r7norm.includes(field.contextGroup)) score += 50;
+    else if (col.r7norm) score -= 20;
+  }
+  // Percent match: strong signal
+  if (field.percent !== undefined) {
+    const p = extractPercent(col.r8) || extractPercent(col.r7);
+    if (p !== null) {
+      if (Math.abs(p - field.percent) < 0.01) score += 100;
+      else score -= 30;
+    }
+  }
+  // Penalize columns that are obviously other fields
+  if (text.includes('cong') && text.length < 10 && field.key !== 'U_KPCD_DN' && field.key !== 'Y_KPCD_NLD') {
+    score -= 50;
+  }
+  return score;
+}
+
+// Auto-detect all fields from a worksheet. Returns {mapping, issues, cols}
+function autoDetectColumns(ws) {
+  const cols = readHeaders(ws);
+  propagateGroupHeaders(cols);
+  const mapping = {};
+  const issues = []; // list of missing/ambiguous field keys
+  const scores = {}; // for debug
+
+  for (const field of FIELD_DEFS) {
+    let bestCol = null, bestScore = -1, tiedCols = [];
+    for (const c of cols) {
+      // Skip columns already assigned to another field with higher priority
+      const s = scoreColumn(c, field);
+      if (s > bestScore) {
+        bestCol = c; bestScore = s; tiedCols = [c];
+      } else if (s === bestScore && s >= 0) {
+        tiedCols.push(c);
+      }
+    }
+    scores[field.key] = { bestScore, colIdx: bestCol ? bestCol.idx : null };
+    if (bestScore < 0 || !bestCol) {
+      issues.push({ field: field.key, label: field.label, reason: 'not_found' });
+      continue;
+    }
+    // Ambiguity check: multiple cols tied
+    if (tiedCols.length > 1) {
+      // If 2 cols tied on e.g. BHXH without clear percent/group — use the first one for DN, last for NLD
+      // For DN fields, prefer left (lower idx). For NLD fields, prefer right.
+      if (field.contextGroup === 'khoan tru vao luong') {
+        tiedCols.sort((a, b) => b.idx - a.idx); // higher idx first
+      } else {
+        tiedCols.sort((a, b) => a.idx - b.idx);
+      }
+      bestCol = tiedCols[0];
+      issues.push({ field: field.key, label: field.label, reason: 'ambiguous', count: tiedCols.length });
+    }
+    mapping[field.key] = bestCol.idx;
+  }
+
+  return { mapping, issues, cols };
+}
+
+// Compute a stable fingerprint of a workbook's Fulltime sheet headers.
+// Used to remember user-confirmed column mappings.
+function computeWorkbookFingerprint(ws) {
+  const cols = readHeaders(ws);
+  const hdrs = cols.map(c => c.combined).filter(t => t).join('|');
+  // Simple DJB2 hash
+  let h = 5381;
+  for (let i = 0; i < hdrs.length; i++) {
+    h = ((h << 5) + h) + hdrs.charCodeAt(i);
+    h = h | 0;
+  }
+  return 'fp' + Math.abs(h).toString(36);
+}
+
+const COLUMN_MAPPINGS_KEY = 'prep-misa-columnMappings-v1';
+function loadSavedMappings() {
+  try { return JSON.parse(localStorage.getItem(COLUMN_MAPPINGS_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveMappingForFP(fp, mapping, sheetName) {
+  try {
+    const all = loadSavedMappings();
+    all[fp] = { mapping, savedAt: new Date().toISOString(), sheetName };
+    localStorage.setItem(COLUMN_MAPPINGS_KEY, JSON.stringify(all));
+  } catch (e) { console.error(e); }
+}
+function deleteMappingForFP(fp) {
+  try {
+    const all = loadSavedMappings();
+    delete all[fp];
+    localStorage.setItem(COLUMN_MAPPINGS_KEY, JSON.stringify(all));
+  } catch (e) { console.error(e); }
+}
+
+// Excel column letter from 0-based index (0 → A, 25 → Z, 26 → AA ...)
+function colIdxToLetter(idx) {
+  let s = '';
+  let n = idx + 1;
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+function colLetterToIdx(letter) {
+  let n = 0;
+  const up = String(letter || '').toUpperCase();
+  for (let i = 0; i < up.length; i++) {
+    const c = up.charCodeAt(i) - 64;
+    if (c < 1 || c > 26) return -1;
+    n = n * 26 + c;
+  }
+  return n - 1;
+}
+
+
+
+function getCellVal(ws, row1based, col0based) {
+  const addr = XLSX.utils.encode_cell({ r: row1based - 1, c: col0based });
+  const cell = ws[addr];
+  if (!cell) return 0;
+  const v = cell.v;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const n = parseFloat(v.replace(/[^0-9.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+function getCellStr(ws, row1based, col0based) {
+  const addr = XLSX.utils.encode_cell({ r: row1based - 1, c: col0based });
+  const cell = ws[addr];
+  if (!cell) return '';
+  return normalize(cell.v);
+}
+function sumCol(ws, rows, col0based) {
+  return rows.reduce((s, r) => s + getCellVal(ws, r, col0based), 0);
+}
+
+function detectSubtotals(ws) {
+  const subtotals = [];
+  const ref = ws['!ref'];
+  if (!ref) return subtotals;
+  const range = XLSX.utils.decode_range(ref);
+  // Dynamic column letter - uses current COL_P mapping
+  const colLetter = colIdxToLetter(COL_P);
+  const escLetter = colLetter.replace(/([a-z])/gi, (c) => `[${c.toUpperCase()}${c.toLowerCase()}]`);
+  const re = new RegExp(`^=?\\s*SUBTOTAL\\s*\\(\\s*9\\s*,\\s*${escLetter}(\\d+)(?::${escLetter}(\\d+))?\\s*\\)$`, 'i');
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    const addr = XLSX.utils.encode_cell({ r, c: COL_P });
+    const cell = ws[addr];
+    if (!cell || !cell.f) continue;
+    const m = re.exec(cell.f);
+    if (!m) continue;
+    const start = parseInt(m[1], 10);
+    const end = m[2] ? parseInt(m[2], 10) : start;
+    const name = getCellStr(ws, r + 1, COL_MANV);
+    subtotals.push({ row: r + 1, name, rangeStart: start, rangeEnd: end });
+  }
+  return subtotals;
+}
+
+function directRows(S, all) {
+  const covered = new Set();
+  for (const c of all) {
+    if (c === S) continue;
+    if (c.row >= S.rangeStart && c.row <= S.rangeEnd) {
+      for (let r = c.row; r <= c.rangeEnd; r++) covered.add(r);
+    }
+  }
+  const result = [];
+  for (let r = S.rangeStart; r <= S.rangeEnd; r++) {
+    if (!covered.has(r)) result.push(r);
+  }
+  return result;
+}
+
+function employeeInfo(ws, rows) {
+  return rows.map(r => ({
+    row: r,
+    maNV: getCellStr(ws, r, COL_MANV),
+    hoTen: getCellStr(ws, r, COL_HOTEN),
+    p: getCellVal(ws, r, COL_P),
+    l: getCellVal(ws, r, COL_L),
+  }));
+}
+
+// Flexible sheet detection: returns { kind, month, year } or null.
+// Accepts wide range of naming variations.
+function parseSheetName(name) {
+  if (!name) return null;
+  const raw = String(name);
+  // Normalize: remove accents, lowercase, collapse whitespace
+  const norm = raw
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Detect kind: check longer keywords first to avoid "ft" matching inside "fulltime"
+  let kind = null;
+  if (/\bfull[\s\-_]?time\b|\bfulltime\b|\bft\b/.test(norm)) kind = 'Fulltime';
+  else if (/\bpart[\s\-_]?time\b|\bparttime\b|\bpt\b/.test(norm)) kind = 'Parttime';
+  else if (/\bnsnn\b|\bns nn\b|ngan sach nha nuoc|ngan sach/.test(norm)) kind = 'NSNN';
+  if (!kind) return null;
+
+  // Detect month/year: try several patterns
+  // Pattern 1: "thang 01.2026" / "thang 1/2026" / "tháng 01-2026" (after normalization)
+  let m = /thang\s*(\d{1,2})\s*[.\-\/]\s*(\d{4})/.exec(norm);
+  if (!m) {
+    // Pattern 2: "t01/2026" / "t1.2026" / "t1-2026"
+    m = /\bt\s*(\d{1,2})\s*[.\-\/]\s*(\d{4})/.exec(norm);
+  }
+  if (!m) {
+    // Pattern 3: "01.2026" / "01/2026" / "01-2026" (bare)
+    m = /\b(\d{1,2})\s*[.\-\/]\s*(\d{4})\b/.exec(norm);
+  }
+  if (!m) {
+    // Pattern 4: "2026.01" / "2026/1" (reversed)
+    const m2 = /\b(\d{4})\s*[.\-\/]\s*(\d{1,2})\b/.exec(norm);
+    if (m2) m = [m2[0], m2[2], m2[1]];
+  }
+  if (!m) return null;
+  const month = parseInt(m[1], 10);
+  const year = parseInt(m[2], 10);
+  if (month < 1 || month > 12 || year < 2000 || year > 2100) return null;
+  return { month, year, kind };
+}
+
+/* =====================================================================
+   PROCESSING
+   ===================================================================== */
+
+function pushRow(out, period, type, misa, tk, amount, meta, opts = {}) {
+  if (!amount) return;
+  const defaultPrefix = (type === 'hoa hồng') ? 'Chi phí hoa hồng' : 'Chi phí lương';
+  const prefix = opts.prefix || defaultPrefix;
+  const baseText = `${prefix} T${period.mm}/${period.yyyy}`;
+  out.push({
+    dienGiaiHT: opts.dienGiaiHT || (misa ? `${baseText} - ${misa}` : baseText),
+    dienGiai: opts.dienGiai || baseText,
+    tkNo: tk, tkCo: opts.tkCo || '3341', soTien: amount,
+    maDTNo: opts.maDTNo || '', maDTCo: opts.maDTCo || '',
+    kenh: meta?.kenh || '', duAn: meta?.duAn || '',
+    sanPham: meta?.sanPham || '', thiTruong: meta?.thiTruong || '',
+  });
+}
+
+function metaOf(rule) {
+  return { kenh: rule.kenh, duAn: rule.duAn, sanPham: rule.sanPham, thiTruong: rule.thiTruong };
+}
+
+// Context-driven team processor. Generates rows for ONE team based on its rule and a config.
+// cfg: { column, tkCo, prefix, applyHH (default false), prefixHH, maDTNo, maDTCo, fixedTkNo, labelSuffix }
+function processTeamWithCtx(ws, teamSub, allSubs, rule, period, cfg) {
+  const rows = directRows(teamSub, allSubs);
+  const out = [];
+  if (rows.length === 0) return out;
+  const meta = metaOf(rule);
+  const labelSuffix = cfg.labelSuffix || '';
+  const misaLabel = (rule.misa || '') + labelSuffix;
+  const baseOpts = { tkCo: cfg.tkCo, prefix: cfg.prefix, maDTNo: cfg.maDTNo, maDTCo: cfg.maDTCo };
+  const hhOpts = { ...baseOpts, prefix: cfg.prefixHH || 'Chi phí hoa hồng' };
+
+  // If rule is custom with splits (from wizard), handle those first (salary only)
+  if (rule.splits && cfg.column === COL_P && cfg.applyHH !== undefined) {
+    const excluded = new Set();
+    for (const group of rule.splits) {
+      const groupSet = new Set(group.maNVs || []);
+      for (const r of rows) {
+        const manv = getCellStr(ws, r, COL_MANV);
+        if (groupSet.has(manv)) excluded.add(r);
+      }
+    }
+    for (const group of rule.splits) {
+      const groupSet = new Set(group.maNVs || []);
+      const groupRows = rows.filter(r => groupSet.has(getCellStr(ws, r, COL_MANV)));
+      const groupSumP = sumCol(ws, groupRows, COL_P);
+      for (const alloc of (group.allocations || [])) {
+        const amount = groupSumP * (alloc.percent || 0) / 100;
+        const label = (alloc.misa || rule.misa) + labelSuffix;
+        const allocMeta = {
+          kenh: alloc.kenh || meta.kenh,
+          duAn: alloc.duAn || meta.duAn,
+          sanPham: alloc.sanPham || meta.sanPham,
+          thiTruong: alloc.thiTruong || meta.thiTruong,
+        };
+        pushRow(out, period, 'main', label, alloc.tk, amount, allocMeta, baseOpts);
+      }
+    }
+    const normalRows = rows.filter(r => !excluded.has(r));
+    const sumMain = sumCol(ws, normalRows, cfg.column);
+    const sumL = cfg.applyHH ? sumCol(ws, normalRows, COL_L) : 0;
+    if (rule.tkHH && cfg.applyHH) {
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo || rule.tk, sumMain - sumL, meta, baseOpts);
+      pushRow(out, period, 'hoa hồng', misaLabel, rule.tkHH, sumL, meta, hhOpts);
+    } else {
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo || rule.tk, sumMain, meta, baseOpts);
+    }
+    return out;
+  }
+
+  const sumMain = sumCol(ws, rows, cfg.column);
+  const sumL = cfg.applyHH ? sumCol(ws, rows, COL_L) : 0;
+
+  // Dispatch based on rule.kind (built-in) or shape (custom)
+  const kind = rule.kind;
+  if (kind === 'split_50_50') {
+    if (cfg.fixedTkNo) {
+      // Fixed TK — no split by TK (but could still split by 50/50 for diễn giải?)
+      // User didn't specify; treat as aggregate for simplicity
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo, sumMain, meta, baseOpts);
+    } else {
+      const half = sumMain / 2;
+      pushRow(out, period, 'main', misaLabel, rule.tk[0], half, meta, baseOpts);
+      pushRow(out, period, 'main', misaLabel, rule.tk[1], half, meta, baseOpts);
+    }
+  } else if (kind === 'aca_rd_special') {
+    if (cfg.fixedTkNo) {
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo, sumMain, meta, baseOpts);
+    } else {
+      const highMgrs = new Set(rule.highMgrs || []);
+      let sumHigh = 0, sumNormal = 0;
+      for (const r of rows) {
+        const maNV = getCellStr(ws, r, COL_MANV);
+        const v = getCellVal(ws, r, cfg.column);
+        if (highMgrs.has(maNV)) sumHigh += v;
+        else sumNormal += v;
+      }
+      const halfM = sumHigh / 2;
+      pushRow(out, period, 'main', rule.misa, rule.tk, halfM, meta, baseOpts);
+      pushRow(out, period, 'main', rule.specialMisa, rule.specialTk, halfM, meta, baseOpts);
+      pushRow(out, period, 'main', rule.misa, rule.tk, sumNormal, meta, baseOpts);
+    }
+  } else if (kind === 'kinhdoanh' || (!kind && rule.tkHH)) {
+    // Kinh doanh: split lương + hoa hồng IF applyHH
+    if (cfg.applyHH) {
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo || rule.tk, sumMain - sumL, meta, baseOpts);
+      pushRow(out, period, 'hoa hồng', misaLabel, rule.tkHH, sumL, meta, hhOpts);
+    } else {
+      // Non-salary file: don't split, just use main TK
+      pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo || rule.tk, sumMain, meta, baseOpts);
+    }
+  } else {
+    // backoffice, backoffice_direct, or custom without tkHH
+    pushRow(out, period, 'main', misaLabel, cfg.fixedTkNo || rule.tk, sumMain, meta, baseOpts);
+  }
+  return out;
+}
+
+// Main sheet processor with context — returns {rows, pending}
+function processSheetWithCtx(ws, sheetType, period, userRules, cfg) {
+  const subs = detectSubtotals(ws);
+  const rows = [];
+  const pending = [];
+  const containerNames = sheetType === 'Fulltime' ? FT_CONTAINER_NAMES
+    : sheetType === 'Parttime' ? PT_CONTAINER_NAMES : new Set();
+
+  for (const s of subs) {
+    const name = s.name;
+    if (containerNames.has(name)) continue;
+    const empRows = directRows(s, subs);
+    if (empRows.length === 0) continue;
+
+    if (sheetType === 'NSNN') {
+      // NSNN: fixed TK 6224 (or use cfg.fixedTkNo if provided for other files)
+      const sumV = sumCol(ws, empRows, cfg.column);
+      const tk = cfg.fixedTkNo || '6224';
+      const abbrName = name.replace(/^Bộ [Pp]hận\s+/, 'BP ');
+      pushRow(rows, period, 'main', `${abbrName} (NSNN)`, tk, sumV, META_BACKOFFICE, {
+        tkCo: cfg.tkCo, prefix: cfg.prefix, maDTNo: cfg.maDTNo, maDTCo: cfg.maDTCo,
+      });
+      continue;
+    }
+
+    const rule = resolveRule(sheetType, name, userRules);
+    if (!rule) {
+      pending.push({
+        sheetType, name, row: s.row,
+        employees: employeeInfo(ws, empRows),
+        totalP: sumCol(ws, empRows, COL_P),
+        totalL: sumCol(ws, empRows, COL_L),
+      });
+      continue;
+    }
+    const labelSuffix = sheetType === 'Parttime' ? ' (Parttime)' : '';
+    rows.push(...processTeamWithCtx(ws, s, subs, rule, period, { ...cfg, labelSuffix }));
+  }
+  return { rows, pending };
+}
+
+// Backwards compat wrappers (still used by file 1 logic)
+function processBuiltinFulltime(ws, teamSub, allSubs, rule, period) {
+  return processTeamWithCtx(ws, teamSub, allSubs, rule, period, {
+    column: COL_P, tkCo: '3341', prefix: 'Chi phí lương', prefixHH: 'Chi phí hoa hồng',
+    applyHH: true,
+  });
+}
+function processCustomRule(ws, teamSub, allSubs, userRule, period, sheetType) {
+  const labelSuffix = sheetType === 'Parttime' ? ' (Parttime)' : sheetType === 'NSNN' ? ' (NSNN)' : '';
+  return processTeamWithCtx(ws, teamSub, allSubs, userRule, period, {
+    column: COL_P, tkCo: '3341', prefix: 'Chi phí lương', prefixHH: 'Chi phí hoa hồng',
+    applyHH: sheetType === 'Fulltime', labelSuffix,
+  });
+}
+
+function findBuiltinRule(sheetType, name) {
+  if (sheetType === 'Fulltime') return BUILTIN_FULLTIME_RULES.find(r => r.match === name);
+  if (sheetType === 'Parttime') return BUILTIN_PARTTIME_RULES.find(r => r.match === name);
+  return null;
+}
+
+// Resolve effective rule: user override > built-in. Returns merged rule or null.
+function resolveRule(sheetType, name, userRules) {
+  const builtin = findBuiltinRule(sheetType, name);
+  const userRule = userRules[`${sheetType}|${name}`];
+  if (userRule && builtin) return { ...builtin, ...userRule, _source: 'edited' };
+  if (userRule) return { ...userRule, _source: 'custom' };
+  if (builtin) return { ...builtin, _source: 'builtin' };
+  return null;
+}
+
+// Main sheet processor - returns {rows, pending}
+function processSheet(ws, sheetType, period, userRules) {
+  const subs = detectSubtotals(ws);
+  const rows = [];
+  const pending = [];
+
+  const containerNames = sheetType === 'Fulltime' ? FT_CONTAINER_NAMES
+    : sheetType === 'Parttime' ? PT_CONTAINER_NAMES : new Set();
+
+  for (const s of subs) {
+    const name = s.name;
+    if (containerNames.has(name)) continue;
+
+    const empRows = directRows(s, subs);
+    if (empRows.length === 0) continue;
+
+    // NSNN: auto 6224 (no wizard needed)
+    if (sheetType === 'NSNN') {
+      const sumP = sumCol(ws, empRows, COL_P);
+      const abbrName = name.replace(/^Bộ [Pp]hận\s+/, 'BP ');
+      pushRow(rows, period, 'lương', `${abbrName} (NSNN)`, '6224', sumP, META_BACKOFFICE);
+      continue;
+    }
+
+    const rule = resolveRule(sheetType, name, userRules);
+    if (!rule) {
+      pending.push({
+        sheetType, name, row: s.row,
+        employees: employeeInfo(ws, empRows),
+        totalP: sumCol(ws, empRows, COL_P),
+        totalL: sumCol(ws, empRows, COL_L),
+      });
+      continue;
+    }
+
+    // Dispatch: kind → built-in/edited built-in; no kind → custom (wizard-created)
+    if (sheetType === 'Fulltime' && rule.kind) {
+      rows.push(...processBuiltinFulltime(ws, s, subs, rule, period));
+    } else {
+      rows.push(...processCustomRule(ws, s, subs, rule, period, sheetType));
+    }
+  }
+  return { rows, pending };
+}
+
+// Find sheet of a given kind (Fulltime/Parttime/NSNN) using auto-detect + user override.
+// sheetMap is optional: { [sheetName]: 'Fulltime'|'Parttime'|'NSNN'|'skip' }
+function findSheetByKind(wb, kind, sheetMap) {
+  // User override wins
+  if (sheetMap) {
+    for (const n of wb.SheetNames) {
+      if (sheetMap[n] === kind) return n;
+    }
+  }
+  // Fall back to auto-detect
+  for (const n of wb.SheetNames) {
+    const override = sheetMap ? sheetMap[n] : null;
+    if (override === 'skip') continue;
+    if (override) continue; // Already processed above
+    const pn = parseSheetName(n);
+    if (pn && pn.kind === kind) return n;
+  }
+  return null;
+}
+
+// Returns the final classification for each sheet: kind or null
+function classifySheet(sheetName, sheetMap) {
+  if (sheetMap && sheetMap[sheetName] !== undefined) {
+    return sheetMap[sheetName] === 'skip' ? null : sheetMap[sheetName];
+  }
+  const pn = parseSheetName(sheetName);
+  return pn ? pn.kind : null;
+}
+
+// Get period from a workbook: prefer Fulltime's parsed name, else first classified sheet
+function getPeriod(wb, sheetMap) {
+  const ft = findSheetByKind(wb, 'Fulltime', sheetMap);
+  if (ft) {
+    const pn = parseSheetName(ft);
+    if (pn) return { month: pn.month, year: pn.year, mm: pad2(pn.month), yyyy: pn.year };
+  }
+  for (const n of wb.SheetNames) {
+    const k = classifySheet(n, sheetMap);
+    if (!k) continue;
+    const pn = parseSheetName(n);
+    if (pn) return { month: pn.month, year: pn.year, mm: pad2(pn.month), yyyy: pn.year };
+  }
+  return null;
+}
+
+
+// File 1: Hạch toán lương — uses processSheet (existing logic)
+function generateFile1_Salary(wb, period, userRules, sheetMap) {
+  const rows = []; const pending = [];
+  for (const sheetName of wb.SheetNames) {
+    const kind = classifySheet(sheetName, sheetMap);
+    if (!kind) continue;
+    const ws = wb.Sheets[sheetName];
+    const res = processSheet(ws, kind, { mm: period.mm, yyyy: period.yyyy }, userRules);
+    rows.push(...res.rows);
+    pending.push(...res.pending);
+  }
+  return { rows, pending };
+}
+
+// File 2: TNCN — 1 row total across 3 sheets, col AD
+function generateFile2_TNCN(wb, period, sheetMap) {
+  let totalAD = 0;
+  for (const sheetName of wb.SheetNames) {
+    const kind = classifySheet(sheetName, sheetMap);
+    if (!kind) continue;
+    const ws = wb.Sheets[sheetName];
+    const subs = detectSubtotals(ws);
+    const allEmpRows = new Set();
+    for (const s of subs) {
+      const dr = directRows(s, subs);
+      for (const r of dr) allEmpRows.add(r);
+    }
+    for (const r of allEmpRows) {
+      totalAD += getCellVal(ws, r, COL_AD);
+    }
+  }
+  const rows = [];
+  if (totalAD > 0) {
+    rows.push({
+      dienGiai: `Thuế TNCN T${period.mm}/${period.yyyy}`,
+      dienGiaiHT: `Thuế TNCN T${period.mm}/${period.yyyy}`,
+      tkNo: '3341', tkCo: '3335', soTien: totalAD,
+      maDTNo: 'NVprep', maDTCo: '',
+      ...META_BACKOFFICE,
+    });
+  }
+  return { rows };
+}
+
+// File 3: KPCĐ DN trích — per bộ phận, Fulltime only, col U, TK Có 3382
+function generateFile3_KPCD_DN(wb, period, userRules, sheetMap) {
+  const ftSheet = findSheetByKind(wb, 'Fulltime', sheetMap);
+  if (!ftSheet) return { rows: [], pending: [] };
+  const res = processSheetWithCtx(wb.Sheets[ftSheet], 'Fulltime', period, userRules, {
+    column: COL_U, tkCo: '3382', prefix: 'Kinh phí công đoàn',
+    applyHH: false,
+  });
+  return { rows: res.rows, pending: [] };
+}
+
+// File 4: Chi phí BHXH/BHYT/BHTN/BHTNLĐ — per bộ phận, Fulltime only, 4 cols
+function generateFile4_CPBH(wb, period, userRules, sheetMap) {
+  const ftSheet = findSheetByKind(wb, 'Fulltime', sheetMap);
+  if (!ftSheet) return { rows: [] };
+  const ws = wb.Sheets[ftSheet];
+  const dienGiaiChung = `Chi phí BHXH, BHYT, BHTN, BHTNLĐ T${period.mm}/${period.yyyy}`;
+  const specs = [
+    { col: COL_Q, tk: '3383', label: 'BHXH', prefix: 'Chi phí BHXH' },
+    { col: COL_R, tk: '3384', label: 'BHYT', prefix: 'Chi phí BHYT' },
+    { col: COL_S, tk: '3386', label: 'BHTN', prefix: 'Chi phí BHTN' },
+    { col: COL_T, tk: '3389', label: 'BHTNLĐ', prefix: 'Chi phí BHTNLĐ' },
+  ];
+  const allRows = [];
+  for (const sp of specs) {
+    const res = processSheetWithCtx(ws, 'Fulltime', period, userRules, {
+      column: sp.col, tkCo: sp.tk, prefix: sp.prefix,
+      applyHH: false, maDTNo: 'NVprep', maDTCo: 'BHXHBTL',
+    });
+    for (const r of res.rows) r.dienGiai = dienGiaiChung;
+    allRows.push(...res.rows);
+  }
+  return { rows: allRows };
+}
+
+// File 5: Khấu trừ BH vào lương — 3 rows total, Fulltime only
+function generateFile5_KhauTruBH(wb, period, sheetMap) {
+  const ftSheet = findSheetByKind(wb, 'Fulltime', sheetMap);
+  if (!ftSheet) return { rows: [] };
+  const ws = wb.Sheets[ftSheet];
+  const subs = detectSubtotals(ws);
+  // Collect all employee rows
+  const allEmpRows = new Set();
+  for (const s of subs) {
+    if (FT_CONTAINER_NAMES.has(s.name)) continue;
+    for (const r of directRows(s, subs)) allEmpRows.add(r);
+  }
+  const sumV = [...allEmpRows].reduce((a, r) => a + getCellVal(ws, r, COL_V), 0);
+  const sumW = [...allEmpRows].reduce((a, r) => a + getCellVal(ws, r, COL_W), 0);
+  const sumX = [...allEmpRows].reduce((a, r) => a + getCellVal(ws, r, COL_X), 0);
+  const dienGiaiChung = `Trích bảo hiểm vào lương nhân sự T${period.mm}/${period.yyyy}`;
+  const rows = [];
+  const mkRow = (tk, prefix, amount) => ({
+    dienGiai: dienGiaiChung,
+    dienGiaiHT: `${prefix} T${period.mm}/${period.yyyy}`,
+    tkNo: '3341', tkCo: tk, soTien: amount,
+    maDTNo: 'NVprep', maDTCo: 'BHXHBTL',
+    ...META_BACKOFFICE,
+  });
+  if (sumV) rows.push(mkRow('3383', 'Trích BHXH', sumV));
+  if (sumW) rows.push(mkRow('3384', 'Trích BHYT', sumW));
+  if (sumX) rows.push(mkRow('3386', 'Trích BHTN', sumX));
+  return { rows };
+}
+
+// File 6: KPCĐ trừ lương NLĐ — per bộ phận, Fulltime only, col Y, TK Nợ 3341 fixed, TK Có 3382
+function generateFile6_KPCD_NLD(wb, period, userRules, sheetMap) {
+  const ftSheet = findSheetByKind(wb, 'Fulltime', sheetMap);
+  if (!ftSheet) return { rows: [] };
+  const res = processSheetWithCtx(wb.Sheets[ftSheet], 'Fulltime', period, userRules, {
+    column: COL_Y, tkCo: '3382', prefix: 'Kinh phí công đoàn',
+    applyHH: false, fixedTkNo: '3341',
+  });
+  return { rows: res.rows };
+}
+function lastDayOfMonth(year, month) { return new Date(year, month, 0).getDate(); }
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+const MISA_HEADERS = [
+  'Ngày chứng từ (*)', 'Ngày hạch toán (*)', 'Số chứng từ (*)', 'Diễn giải',
+  'Loại tiền', 'Tỷ giá', 'Diễn giải (Hạch toán)', 'TK Nợ (*)', 'TK Có (*)',
+  'Số tiền', 'Số tiền quy đổi', 'Mã đối tượng Nợ', 'Mã đối tượng Có',
+  'Hạch toán gộp nhiều hóa đơn', 'Diễn giải thuế', 'Có hóa đơn', 'Loại thuế',
+  'Giá trị HHDV chưa thuế', 'Giá trị HHDV chưa thuế quy đổi',
+  '% thuế GTGT', '% thuế suất KHAC', 'Tiền thuế GTGT', 'Tiền thuế GTGT quy đổi',
+  'TK thuế GTGT', 'Ngày hóa đơn', 'Số hóa đơn', 'Nhóm HHDV mua vào',
+  'Mã đối tượng thuế', 'Tên đối tượng thuế', 'Mã số thuế đối tượng thuế',
+  'Kênh', 'Dự án', 'Sản phẩm', 'Thị trường',
+];
+const MISA_GROUP_HEADERS = [
+  '', '', '', '', '', '', 'Chi tiết hạch toán', '', '', '', '', '', '',
+  'Hóa đơn', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+];
+
+function buildMisaWorkbook(rows, period, docNumber, dateStr) {
+  if (!dateStr) {
+    const dd = pad2(lastDayOfMonth(period.yyyy, period.mm));
+    dateStr = `${dd}/${period.mm}/${period.yyyy}`;
+  }
+  const aoa = [
+    ['FILE MẪU CHỨNG TỪ NGHIỆP VỤ KHÁC ĐỂ NHẬP VÀO PHẦN MỀM AMIS ACCOUNTING'],
+    ['Hướng dẫn:'],
+    ['- Điền dữ liệu vào các cột tương ứng trên file này'],
+    ['- Các cột có dấu (*) là những cột bắt buộc'],
+    ['- Nếu muốn nhập nhiều thông tin hơn người dùng có thể tải mẫu đầy đủ/hoặc tự thêm cột trên mẫu cơ bản'],
+    ['- Các dòng dữ liệu phía dưới chỉ là ví dụ minh họa'],
+    MISA_GROUP_HEADERS, MISA_HEADERS,
+  ];
+  for (const r of rows) {
+    const dataRow = new Array(34).fill('');
+    dataRow[0] = dateStr; dataRow[1] = dateStr; dataRow[2] = docNumber;
+    dataRow[3] = r.dienGiai; dataRow[6] = r.dienGiaiHT;
+    dataRow[7] = r.tkNo; dataRow[8] = r.tkCo;
+    dataRow[9] = Math.round(r.soTien);
+    // Mã đối tượng Nợ (11) / Mã đối tượng Có (12)
+    dataRow[11] = r.maDTNo || '';
+    dataRow[12] = r.maDTCo || '';
+    // 4 extra fields: cols 31-34 (index 30-33)
+    dataRow[30] = r.kenh || '';
+    dataRow[31] = r.duAn || '';
+    dataRow[32] = r.sanPham || '';
+    dataRow[33] = r.thiTruong || '';
+    aoa.push(dataRow);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  for (let i = 8; i < aoa.length; i++) {
+    const addr = XLSX.utils.encode_cell({ r: i, c: 9 });
+    if (ws[addr]) ws[addr].z = '#,##0';
+  }
+  ws['!cols'] = [
+    { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 30 }, { wch: 10 }, { wch: 8 },
+    { wch: 60 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 12 },
+    ...Array(23).fill({ wch: 12 }),
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Nghiep vu khac');
+  return wb;
+}
+
+/* =====================================================================
+   LOCAL STORAGE
+   ===================================================================== */
+const LS_KEY = 'prep-misa-userRules-v1';
+function loadUserRules() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    // Migrate: ensure every rule has the 4 extra fields
+    for (const k of Object.keys(obj)) {
+      const r = obj[k];
+      if (!r.kenh) r.kenh = 'Đa kênh';
+      if (!r.duAn) r.duAn = 'Chung';
+      if (!r.sanPham) r.sanPham = 'All';
+      if (!r.thiTruong) r.thiTruong = 'VN';
+    }
+    return obj;
+  } catch { return {}; }
+}
+function saveUserRules(rules) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(rules)); } catch {}
+}
+
+const FORMAT_VND = (n) => {
+  if (typeof n !== 'number') return n;
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(n));
+};
+
+/* =====================================================================
+   WIZARD COMPONENT
+   ===================================================================== */
+function PendingTeamForm({ pending, onSave, onCancel }) {
+  const isFT = pending.sheetType === 'Fulltime';
+  const [misa, setMisa] = useState('BP ' + pending.name.replace(/^Bộ [Pp]hận\s+/, ''));
+  const [tk, setTk] = useState('');
+  const [kenh, setKenh] = useState('Đa kênh');
+  const [duAn, setDuAn] = useState('Chung');
+  const [sanPham, setSanPham] = useState('All');
+  const [thiTruong, setThiTruong] = useState('VN');
+  const [hasHoaHong, setHasHoaHong] = useState(false);
+  const [tkHH, setTkHH] = useState('');
+  const [hasSplit, setHasSplit] = useState(false);
+  const [splitMaNVs, setSplitMaNVs] = useState(new Set());
+  const [allocations, setAllocations] = useState([
+    { tk: '', percent: 50, misa: '', kenh: '', duAn: '', sanPham: '', thiTruong: '' },
+    { tk: '', percent: 50, misa: '', kenh: '', duAn: '', sanPham: '', thiTruong: '' },
+  ]);
+  const [showAllocMeta, setShowAllocMeta] = useState(false);
+
+  const toggleMaNV = (manv) => {
+    const next = new Set(splitMaNVs);
+    if (next.has(manv)) next.delete(manv); else next.add(manv);
+    setSplitMaNVs(next);
+  };
+
+  const addAlloc = () => setAllocations([...allocations, { tk: '', percent: 0, misa: '', kenh: '', duAn: '', sanPham: '', thiTruong: '' }]);
+  const removeAlloc = (i) => setAllocations(allocations.filter((_, idx) => idx !== i));
+  const updateAlloc = (i, field, v) => {
+    const next = [...allocations];
+    next[i] = { ...next[i], [field]: v };
+    setAllocations(next);
+  };
+
+  const canSave = misa.trim() && tk.trim() && kenh.trim() && duAn.trim() && sanPham.trim() && thiTruong.trim();
+  const hasHH = isFT && hasHoaHong && tkHH.trim();
+  const hasValidSplit = isFT && hasSplit && splitMaNVs.size > 0 && allocations.every(a => a.tk.trim() && a.percent > 0);
+
+  const handleSave = () => {
+    if (!canSave) return;
+    if (isFT && hasSplit && !hasValidSplit) return;
+    const rule = {
+      misa: misa.trim(), tk: tk.trim(),
+      kenh: kenh.trim(), duAn: duAn.trim(),
+      sanPham: sanPham.trim(), thiTruong: thiTruong.trim(),
+    };
+    if (hasHH) rule.tkHH = tkHH.trim();
+    if (isFT && hasSplit && hasValidSplit) {
+      rule.splits = [{
+        maNVs: [...splitMaNVs],
+        allocations: allocations.map(a => ({
+          tk: a.tk.trim(), percent: Number(a.percent),
+          misa: a.misa.trim() || null,
+          kenh: a.kenh.trim() || null,
+          duAn: a.duAn.trim() || null,
+          sanPham: a.sanPham.trim() || null,
+          thiTruong: a.thiTruong.trim() || null,
+        })),
+      }];
+    }
+    onSave(rule);
+  };
+
+  return (
+    <div className="card p-6 mb-6" style={{ borderLeft: '4px solid var(--warn)' }}>
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="tag" style={{ color: 'var(--warn)' }}>Bộ phận mới</span>
+            <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>{pending.sheetType} · dòng {pending.row}</span>
+          </div>
+          <h3 className="serif text-xl" style={{ color: 'var(--accent)' }}>{pending.name}</h3>
+          <div className="text-xs mt-1 num" style={{ color: 'var(--ink-muted)' }}>
+            {pending.employees.length} NV · Tổng TN: {FORMAT_VND(pending.totalP)} VND
+            {isFT && <> · Thưởng KPI: {FORMAT_VND(pending.totalL)} VND</>}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {/* 1. Label + TK */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>
+              Diễn giải MISA <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input type="text" value={misa} onChange={e => setMisa(e.target.value)} placeholder="VD: Bộ phận Abc" />
+          </div>
+          <div>
+            <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>
+              TK Chi phí <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input type="text" value={tk} onChange={e => setTk(e.target.value)} placeholder="VD: 6226" list={`tk-suggest-${pending.name}`} />
+            <datalist id={`tk-suggest-${pending.name}`}>
+              {KNOWN_TK.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
+        </div>
+
+        {/* 4 extra fields */}
+        <div>
+          <div className="text-xs tracking-wider uppercase mb-2" style={{ color: 'var(--ink-muted)' }}>
+            Thông tin bổ sung (4 trường MISA) <span style={{ color: 'var(--error)' }}>*</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Kênh</label>
+              <input type="text" value={kenh} onChange={e => setKenh(e.target.value)} list={`kenh-${pending.name}`} />
+              <datalist id={`kenh-${pending.name}`}>{KENH_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Dự án</label>
+              <input type="text" value={duAn} onChange={e => setDuAn(e.target.value)} list={`duan-${pending.name}`} />
+              <datalist id={`duan-${pending.name}`}>{DUAN_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Sản phẩm</label>
+              <input type="text" value={sanPham} onChange={e => setSanPham(e.target.value)} list={`sp-${pending.name}`} />
+              <datalist id={`sp-${pending.name}`}>{SANPHAM_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Thị trường</label>
+              <input type="text" value={thiTruong} onChange={e => setThiTruong(e.target.value)} list={`tt-${pending.name}`} />
+              <datalist id={`tt-${pending.name}`}>{THITRUONG_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Hoa hồng (Fulltime only) */}
+        {isFT && (
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+              <input type="checkbox" checked={hasHoaHong} onChange={e => setHasHoaHong(e.target.checked)} />
+              <span>Đây là team <strong>Khối Kinh doanh</strong> - cần tách tiền KPI sang TK Hoa hồng riêng</span>
+            </label>
+            {!hasHoaHong && (
+              <div className="text-xs ml-6" style={{ color: 'var(--ink-muted)' }}>
+                → Toàn bộ Tổng thu nhập (bao gồm KPI) sẽ được hạch toán vào TK Chi phí ở trên.
+              </div>
+            )}
+            {hasHoaHong && (
+              <div className="ml-6">
+                <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>
+                  TK Hoa hồng (phần Thưởng KPI sẽ vào đây)
+                </label>
+                <input type="text" value={tkHH} onChange={e => setTkHH(e.target.value)} placeholder="VD: 64114" list={`tk-hh-${pending.name}`} style={{ maxWidth: '200px' }} />
+                <datalist id={`tk-hh-${pending.name}`}>
+                  {KNOWN_TK.map(t => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. Split NV (Fulltime only) */}
+        {isFT && (
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+              <input type="checkbox" checked={hasSplit} onChange={e => setHasSplit(e.target.checked)} />
+              <span>Có nhân sự cần <strong>tách % lương sang nhiều TK</strong> (vd: 50% vào 6225, 50% vào 6226)</span>
+            </label>
+
+            {hasSplit && (
+              <div className="ml-6 space-y-4">
+                <div>
+                  <div className="text-xs mb-2" style={{ color: 'var(--ink-muted)' }}>
+                    Chọn NV áp dụng tách % (click để chọn/bỏ):
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {pending.employees.map(e => (
+                      <span key={e.row}
+                        className={`chip selectable ${splitMaNVs.has(e.maNV) ? 'selected' : ''}`}
+                        onClick={() => toggleMaNV(e.maNV)}
+                        title={`${e.hoTen} · ${FORMAT_VND(e.p)} VND`}>
+                        {e.maNV}
+                      </span>
+                    ))}
+                  </div>
+                  {splitMaNVs.size > 0 && (
+                    <div className="text-xs mt-2 num" style={{ color: 'var(--accent)' }}>
+                      Đã chọn {splitMaNVs.size} NV · Tổng TN các NV này: {FORMAT_VND(
+                        pending.employees.filter(e => splitMaNVs.has(e.maNV)).reduce((s, e) => s + e.p, 0)
+                      )} VND
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+                    <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                      Chia tổng TN các NV này thành các phần (tổng % nên = 100):
+                    </div>
+                    <label className="text-xs flex items-center gap-1 cursor-pointer" style={{ color: 'var(--ink-muted)' }}>
+                      <input type="checkbox" checked={showAllocMeta} onChange={e => setShowAllocMeta(e.target.checked)} />
+                      Tuỳ chỉnh 4 trường cho mỗi phần
+                    </label>
+                  </div>
+                  <div className="space-y-3">
+                    {allocations.map((a, i) => (
+                      <div key={i} className="p-3" style={{ border: '1px solid var(--rule)', background: 'var(--bg)' }}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input type="number" value={a.percent} onChange={e => updateAlloc(i, 'percent', e.target.value)}
+                            placeholder="50" style={{ width: '70px' }} min="0" max="100" />
+                          <span className="text-xs">%</span>
+                          <span className="text-xs">→ TK</span>
+                          <input type="text" value={a.tk} onChange={e => updateAlloc(i, 'tk', e.target.value)}
+                            placeholder="6225" style={{ width: '100px' }} list={`tk-alloc-${pending.name}-${i}`} />
+                          <datalist id={`tk-alloc-${pending.name}-${i}`}>
+                            {KNOWN_TK.map(t => <option key={t} value={t} />)}
+                          </datalist>
+                          <span className="text-xs">Diễn giải:</span>
+                          <input type="text" value={a.misa} onChange={e => updateAlloc(i, 'misa', e.target.value)}
+                            placeholder="(trống = dùng diễn giải chung)" style={{ flex: 1, minWidth: '200px' }} />
+                          {allocations.length > 2 && (
+                            <button className="btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => removeAlloc(i)}>×</button>
+                          )}
+                        </div>
+                        {showAllocMeta && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-xs">
+                            <div>
+                              <label className="block mb-0.5" style={{ color: 'var(--ink-muted)' }}>Kênh (trống = mặc định)</label>
+                              <input type="text" value={a.kenh} onChange={e => updateAlloc(i, 'kenh', e.target.value)} list={`k-a-${pending.name}-${i}`} />
+                              <datalist id={`k-a-${pending.name}-${i}`}>{KENH_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+                            </div>
+                            <div>
+                              <label className="block mb-0.5" style={{ color: 'var(--ink-muted)' }}>Dự án</label>
+                              <input type="text" value={a.duAn} onChange={e => updateAlloc(i, 'duAn', e.target.value)} list={`d-a-${pending.name}-${i}`} />
+                              <datalist id={`d-a-${pending.name}-${i}`}>{DUAN_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+                            </div>
+                            <div>
+                              <label className="block mb-0.5" style={{ color: 'var(--ink-muted)' }}>Sản phẩm</label>
+                              <input type="text" value={a.sanPham} onChange={e => updateAlloc(i, 'sanPham', e.target.value)} list={`s-a-${pending.name}-${i}`} />
+                              <datalist id={`s-a-${pending.name}-${i}`}>{SANPHAM_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+                            </div>
+                            <div>
+                              <label className="block mb-0.5" style={{ color: 'var(--ink-muted)' }}>Thị trường</label>
+                              <input type="text" value={a.thiTruong} onChange={e => updateAlloc(i, 'thiTruong', e.target.value)} list={`t-a-${pending.name}-${i}`} />
+                              <datalist id={`t-a-${pending.name}-${i}`}>{THITRUONG_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <button className="btn-ghost text-xs" onClick={addAlloc}>+ Thêm TK</button>
+                  </div>
+                  {(() => {
+                    const total = allocations.reduce((s, a) => s + Number(a.percent || 0), 0);
+                    if (total !== 100 && splitMaNVs.size > 0) {
+                      return <div className="text-xs mt-2" style={{ color: 'var(--warn)' }}>
+                        ⚠ Tổng % hiện đang = {total}% (nên = 100%)
+                      </div>;
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                <div className="text-xs p-3 card" style={{ color: 'var(--ink-muted)' }}>
+                  Các NV còn lại (không được chọn) sẽ áp dụng rule mặc định ở trên (TK Chi phí + TK Hoa hồng nếu có).
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3 mt-6 pt-4" style={{ borderTop: '1px dashed var(--rule)' }}>
+        <button className="btn-primary" onClick={handleSave} disabled={!canSave || (isFT && hasSplit && !hasValidSplit)}>
+          ✓ Lưu rule & áp dụng
+        </button>
+        <button className="btn-ghost" onClick={onCancel}>Bỏ qua team này</button>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   RULE EDITOR (for existing rules - inline form)
+   ===================================================================== */
+function RuleEditor({ rule, sheetType, isBuiltin, onSave, onCancel }) {
+  // rule may be a built-in or a merged (built-in + override)
+  const [misa, setMisa] = useState(rule.misa || '');
+  const [tkStr, setTkStr] = useState(Array.isArray(rule.tk) ? (rule.tk[0] || '') : (rule.tk || ''));
+  const [tk2, setTk2] = useState(Array.isArray(rule.tk) ? (rule.tk[1] || '') : '');
+  const [hasHH, setHasHH] = useState(!!rule.tkHH);
+  const [tkHH, setTkHH] = useState(rule.tkHH || '');
+  const [kenh, setKenh] = useState(rule.kenh || 'Đa kênh');
+  const [duAn, setDuAn] = useState(rule.duAn || 'Chung');
+  const [sanPham, setSanPham] = useState(rule.sanPham || 'All');
+  const [thiTruong, setThiTruong] = useState(rule.thiTruong || 'VN');
+  // Special fields for aca_rd_special
+  const [specialMisa, setSpecialMisa] = useState(rule.specialMisa || '');
+  const [specialTk, setSpecialTk] = useState(rule.specialTk || '');
+  const [highMgrs, setHighMgrs] = useState((rule.highMgrs || []).join(', '));
+
+  const isSplit = rule.kind === 'split_50_50';
+  const isAcaRD = rule.kind === 'aca_rd_special';
+  const isFT = sheetType === 'Fulltime';
+
+  const save = () => {
+    const out = {
+      misa: misa.trim(),
+      kenh: kenh.trim(), duAn: duAn.trim(),
+      sanPham: sanPham.trim(), thiTruong: thiTruong.trim(),
+    };
+    if (rule.kind) out.kind = rule.kind; // preserve kind for built-in
+    if (isSplit) {
+      out.tk = [tkStr.trim(), tk2.trim()];
+    } else {
+      out.tk = tkStr.trim();
+    }
+    if (isFT && hasHH && !isSplit && !isAcaRD) {
+      out.tkHH = tkHH.trim();
+    }
+    if (isAcaRD) {
+      out.specialMisa = specialMisa.trim();
+      out.specialTk = specialTk.trim();
+      out.highMgrs = highMgrs.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    // Preserve splits from original rule (for custom rules from wizard)
+    if (rule.splits) out.splits = rule.splits;
+    onSave(out);
+  };
+
+  const canSave = misa.trim() && tkStr.trim() && kenh.trim() && duAn.trim() && sanPham.trim() && thiTruong.trim()
+    && (!isSplit || tk2.trim())
+    && (!isAcaRD || (specialMisa.trim() && specialTk.trim()));
+
+  return (
+    <div className="p-4 mt-2" style={{ background: 'var(--bg)', border: '1px dashed var(--accent)' }}>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>Diễn giải MISA</label>
+          <input type="text" value={misa} onChange={e => setMisa(e.target.value)} />
+        </div>
+
+        {isSplit ? (
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>TK (50%)</label>
+              <input type="text" value={tkStr} onChange={e => setTkStr(e.target.value)} list="tk-list" />
+            </div>
+            <div>
+              <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>TK thứ 2 (50%)</label>
+              <input type="text" value={tk2} onChange={e => setTk2(e.target.value)} list="tk-list" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>
+                TK Chi phí {isAcaRD && <span style={{ color: 'var(--ink-muted)' }}>(cho phần R&D + NV còn lại)</span>}
+              </label>
+              <input type="text" value={tkStr} onChange={e => setTkStr(e.target.value)} list="tk-list" />
+            </div>
+            {isFT && !isAcaRD && (
+              <div>
+                <label className="flex items-center gap-2 text-xs tracking-wider uppercase mb-1" style={{ color: 'var(--ink-muted)' }}>
+                  <input type="checkbox" checked={hasHH} onChange={e => setHasHH(e.target.checked)} />
+                  TK Hoa hồng (nếu có)
+                </label>
+                <input type="text" value={tkHH} onChange={e => setTkHH(e.target.value)} disabled={!hasHH} list="tk-list"
+                  style={{ opacity: hasHH ? 1 : 0.4 }} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {isAcaRD && (
+          <div className="p-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)' }}>
+            <div className="text-xs tracking-wider uppercase mb-2" style={{ color: 'var(--accent-warm)' }}>
+              Phần đặc biệt (tách 50/50 cho NV cấp cao)
+            </div>
+            <div className="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Diễn giải phần đặc biệt</label>
+                <input type="text" value={specialMisa} onChange={e => setSpecialMisa(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>TK phần đặc biệt</label>
+                <input type="text" value={specialTk} onChange={e => setSpecialTk(e.target.value)} list="tk-list" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>
+                Mã NV cấp cao (phân cách bằng dấu phẩy) - 50% thu nhập của họ sẽ vào TK đặc biệt
+              </label>
+              <input type="text" value={highMgrs} onChange={e => setHighMgrs(e.target.value)} placeholder="F0063, F0172" />
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="text-xs tracking-wider uppercase mb-2" style={{ color: 'var(--ink-muted)' }}>4 trường thông tin bổ sung</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Kênh</label>
+              <input type="text" value={kenh} onChange={e => setKenh(e.target.value)} list="kenh-list" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Dự án</label>
+              <input type="text" value={duAn} onChange={e => setDuAn(e.target.value)} list="duan-list" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Sản phẩm</label>
+              <input type="text" value={sanPham} onChange={e => setSanPham(e.target.value)} list="sp-list" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>Thị trường</label>
+              <input type="text" value={thiTruong} onChange={e => setThiTruong(e.target.value)} list="tt-list" />
+            </div>
+          </div>
+        </div>
+
+        {rule.splits && rule.splits.length > 0 && (
+          <div className="text-xs p-3" style={{ background: 'var(--warn-bg)', color: 'var(--warn)' }}>
+            ⓘ Rule này có {rule.splits[0].maNVs.length} NV được tách % sang nhiều TK (tạo từ wizard).
+            Edit tại đây chỉ cập nhật TK mặc định + 4 trường. Để sửa danh sách tách %, xoá rule này và tạo lại từ wizard.
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2" style={{ borderTop: '1px dashed var(--rule)' }}>
+          <button className="btn-primary" onClick={save} disabled={!canSave}>✓ Lưu</button>
+          <button className="btn-ghost" onClick={onCancel}>Huỷ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   RULE MANAGER PANEL
+   ===================================================================== */
+function RuleRow({ sheetType, name, rule, status, onEdit, onReset, onDelete, isEditing, editedRule, onSaveEdit, onCancelEdit }) {
+  const tkDisplay = Array.isArray(rule.tk) ? rule.tk.join(' + ') : rule.tk;
+  return (
+    <div className="py-3 px-4" style={{ borderBottom: '1px solid var(--rule)' }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-medium text-sm">{name}</span>
+            {status === 'builtin' && <span className="tag" style={{ color: 'var(--ink-muted)' }}>Mặc định</span>}
+            {status === 'edited' && <span className="tag" style={{ color: 'var(--accent-warm)' }}>Đã sửa</span>}
+            {status === 'custom' && <span className="tag" style={{ color: 'var(--accent)' }}>Tuỳ chỉnh</span>}
+            {rule.kind === 'aca_rd_special' && <span className="tag" style={{ color: 'var(--warn)' }}>Đặc biệt</span>}
+            {rule.kind === 'split_50_50' && <span className="tag" style={{ color: 'var(--warn)' }}>Chia 50/50</span>}
+          </div>
+          <div className="text-xs num" style={{ color: 'var(--ink-muted)' }}>
+            <span style={{ color: 'var(--ink)' }}>{rule.misa}</span>
+            {' · '}TK: <span style={{ color: 'var(--accent)' }}>{tkDisplay}</span>
+            {rule.tkHH && <> · TK HH: <span style={{ color: 'var(--accent)' }}>{rule.tkHH}</span></>}
+            {rule.specialTk && <> · TK đặc biệt: <span style={{ color: 'var(--accent)' }}>{rule.specialTk}</span></>}
+            {' · '}{rule.kenh}|{rule.duAn}|{rule.sanPham}|{rule.thiTruong}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isEditing && <button className="btn-ghost text-xs" onClick={onEdit}>Sửa</button>}
+          {!isEditing && status === 'edited' && <button className="btn-ghost text-xs" onClick={onReset} title="Khôi phục rule mặc định">↺ Reset</button>}
+          {!isEditing && status === 'custom' && <button className="btn-danger" onClick={onDelete}>Xoá</button>}
+          {isEditing && <button className="btn-ghost text-xs" onClick={onCancelEdit}>Đóng</button>}
+        </div>
+      </div>
+      {isEditing && (
+        <RuleEditor rule={rule} sheetType={sheetType} isBuiltin={status !== 'custom'}
+          onSave={onSaveEdit} onCancel={onCancelEdit} />
+      )}
+    </div>
+  );
+}
+
+function RuleManagerPanel({ userRules, onUpdate, onClose }) {
+  const [tab, setTab] = useState('Fulltime');
+  const [search, setSearch] = useState('');
+  const [editingKey, setEditingKey] = useState(null);
+
+  // Build lists per tab
+  const ftList = useMemo(() => {
+    const items = [];
+    for (const b of BUILTIN_FULLTIME_RULES) {
+      const key = `Fulltime|${b.match}`;
+      const user = userRules[key];
+      const merged = user ? { ...b, ...user } : b;
+      items.push({ key, name: b.match, rule: merged, status: user ? 'edited' : 'builtin' });
+    }
+    // Custom FT teams (not in built-in)
+    for (const key of Object.keys(userRules)) {
+      if (!key.startsWith('Fulltime|')) continue;
+      const name = key.substring('Fulltime|'.length);
+      if (BUILTIN_FULLTIME_RULES.find(b => b.match === name)) continue;
+      items.push({ key, name, rule: userRules[key], status: 'custom' });
+    }
+    return items;
+  }, [userRules]);
+
+  const ptList = useMemo(() => {
+    const items = [];
+    for (const b of BUILTIN_PARTTIME_RULES) {
+      const key = `Parttime|${b.match}`;
+      const user = userRules[key];
+      const merged = user ? { ...b, ...user } : b;
+      items.push({ key, name: b.match, rule: merged, status: user ? 'edited' : 'builtin' });
+    }
+    for (const key of Object.keys(userRules)) {
+      if (!key.startsWith('Parttime|')) continue;
+      const name = key.substring('Parttime|'.length);
+      if (BUILTIN_PARTTIME_RULES.find(b => b.match === name)) continue;
+      items.push({ key, name, rule: userRules[key], status: 'custom' });
+    }
+    return items;
+  }, [userRules]);
+
+  const filter = (items) => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase().trim();
+    return items.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      (i.rule.misa || '').toLowerCase().includes(q) ||
+      (i.rule.tk + '' || '').toLowerCase().includes(q)
+    );
+  };
+
+  const currentList = tab === 'Fulltime' ? filter(ftList) : tab === 'Parttime' ? filter(ptList) : [];
+
+  const handleSaveEdit = (key, updates) => {
+    onUpdate({ ...userRules, [key]: updates });
+    setEditingKey(null);
+  };
+  const handleReset = (key) => {
+    if (!confirm('Khôi phục rule này về mặc định?')) return;
+    const next = { ...userRules };
+    delete next[key];
+    onUpdate(next);
+  };
+  const handleDelete = (key) => {
+    if (!confirm('Xoá rule tuỳ chỉnh này?')) return;
+    const next = { ...userRules };
+    delete next[key];
+    onUpdate(next);
+  };
+
+  return (
+    <div>
+      <datalist id="tk-list">{KNOWN_TK.map(t => <option key={t} value={t} />)}</datalist>
+      <datalist id="kenh-list">{KENH_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+      <datalist id="duan-list">{DUAN_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+      <datalist id="sp-list">{SANPHAM_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+      <datalist id="tt-list">{THITRUONG_OPTIONS.map(v => <option key={v} value={v} />)}</datalist>
+
+      <div className="flex items-baseline justify-between mb-6 flex-wrap gap-3">
+        <h2 className="serif text-2xl" style={{ color: 'var(--accent)' }}>Quản lý rule hạch toán</h2>
+        <button className="btn-ghost text-sm" onClick={onClose}>← Quay lại</button>
+      </div>
+
+      <div className="card p-4 mb-4 text-xs" style={{ color: 'var(--ink-muted)' }}>
+        Edit TK Nợ, TK Hoa hồng, Diễn giải MISA, hoặc 4 trường thông tin bổ sung (Kênh, Dự án, Sản phẩm, Thị trường) của bất kỳ bộ phận nào.
+        Bấm "Reset" để khôi phục rule mặc định. Thay đổi được lưu trong trình duyệt.
+      </div>
+
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <button className={`btn-ghost text-sm ${tab === 'Fulltime' ? '' : ''}`}
+          style={{ background: tab === 'Fulltime' ? 'var(--accent)' : 'transparent', color: tab === 'Fulltime' ? '#f5f1e8' : 'var(--ink)' }}
+          onClick={() => { setTab('Fulltime'); setEditingKey(null); }}>
+          Fulltime ({ftList.length})
+        </button>
+        <button className="btn-ghost text-sm"
+          style={{ background: tab === 'Parttime' ? 'var(--accent)' : 'transparent', color: tab === 'Parttime' ? '#f5f1e8' : 'var(--ink)' }}
+          onClick={() => { setTab('Parttime'); setEditingKey(null); }}>
+          Parttime ({ptList.length})
+        </button>
+        <button className="btn-ghost text-sm"
+          style={{ background: tab === 'NSNN' ? 'var(--accent)' : 'transparent', color: tab === 'NSNN' ? '#f5f1e8' : 'var(--ink)' }}
+          onClick={() => { setTab('NSNN'); setEditingKey(null); }}>
+          NSNN
+        </button>
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Tìm theo tên team, diễn giải, TK..." style={{ flex: 1, minWidth: '200px' }} />
+      </div>
+
+      {tab === 'NSNN' && (
+        <div className="card p-6 text-sm" style={{ color: 'var(--ink-muted)' }}>
+          <div className="mb-2" style={{ color: 'var(--ink)' }}>Sheet NSNN — rule cố định:</div>
+          <div className="num text-xs">
+            Tất cả bộ phận trong sheet NSNN → TK <span style={{ color: 'var(--accent)' }}>6224</span>
+            {' · '}Diễn giải: "&lt;tên bộ phận&gt; (NSNN)"
+            {' · '}Đa kênh | Chung | All | VN
+          </div>
+          <div className="mt-3 text-xs">Không cấu hình được qua UI — nếu cần thay đổi, liên hệ để update code.</div>
+        </div>
+      )}
+
+      {(tab === 'Fulltime' || tab === 'Parttime') && (
+        <div className="card">
+          {currentList.length === 0 && (
+            <div className="p-8 text-center text-sm" style={{ color: 'var(--ink-muted)' }}>
+              {search ? 'Không tìm thấy rule nào khớp.' : 'Không có rule.'}
+            </div>
+          )}
+          {currentList.map(item => (
+            <RuleRow
+              key={item.key}
+              sheetType={tab} name={item.name} rule={item.rule} status={item.status}
+              onEdit={() => setEditingKey(item.key)}
+              onReset={() => handleReset(item.key)}
+              onDelete={() => handleDelete(item.key)}
+              isEditing={editingKey === item.key}
+              onSaveEdit={(updates) => handleSaveEdit(item.key, updates)}
+              onCancelEdit={() => setEditingKey(null)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   COLUMN MAPPING PANEL
+   ===================================================================== */
+function ColumnMappingPanel({ wb, ftSheetName, mapping, detectResult, onSave, onReset, onClose }) {
+  const [local, setLocal] = useState({ ...mapping });
+  const ws = wb && ftSheetName ? wb.Sheets[ftSheetName] : null;
+  const cols = useMemo(() => {
+    if (!ws) return [];
+    const arr = readHeaders(ws);
+    propagateGroupHeaders(arr);
+    return arr;
+  }, [ws]);
+
+  // Generate dropdown options: first 40 cols
+  const colOptions = cols.slice(0, 40).map(c => {
+    const letter = colIdxToLetter(c.idx);
+    const hdrShort = (c.r7 || c.r8 || '').replace(/\s+/g, ' ').trim().substring(0, 30);
+    return { idx: c.idx, label: `${letter}${hdrShort ? ` - ${hdrShort}` : ''}` };
+  });
+
+  // Issues from auto-detect (for highlighting)
+  const issueKeys = new Set((detectResult?.issues || []).map(i => i.field));
+
+  // Get preview: first 3 employee rows in first subtotal group
+  const preview = useMemo(() => {
+    if (!ws) return [];
+    const subs = detectSubtotals(ws);
+    const firstSub = subs.find(s => !FT_CONTAINER_NAMES.has(s.name));
+    if (!firstSub) return [];
+    const rows = directRows(firstSub, subs).slice(0, 3);
+    return rows.map(r => ({
+      row: r,
+      manv: getCellStr(ws, r, local.MANV),
+      tongTN: getCellVal(ws, r, local.P_TONG_TN),
+      bhxhDN: getCellVal(ws, r, local.Q_BHXH_DN),
+      bhxhNLD: getCellVal(ws, r, local.V_BHXH_NLD),
+      tncn: getCellVal(ws, r, local.AD_TNCN),
+    }));
+  }, [ws, local]);
+
+  const handleSelect = (fieldKey, newIdx) => {
+    setLocal(prev => ({ ...prev, [fieldKey]: newIdx }));
+  };
+  const handleApply = () => { onSave(local, false); };
+  const handleApplyAndSave = () => { onSave(local, true); };
+
+  if (!ws) {
+    return (
+      <div className="card p-4 mb-4 text-sm" style={{ color: 'var(--ink-muted)' }}>
+        Không có sheet Fulltime để kiểm tra mapping.
+        <button className="btn-ghost text-xs ml-4" onClick={onClose}>Đóng</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card p-4 mb-4">
+      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 className="serif text-lg">Mapping cột từ file Excel</h3>
+          <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+            Sheet: <span className="num">{ftSheetName}</span>
+            {detectResult?.source === 'saved' && <> · <span style={{ color: 'var(--accent)' }}>Đang dùng mapping đã lưu</span></>}
+            {detectResult?.source === 'auto' && detectResult.issues.length === 0 && <> · <span style={{ color: 'var(--accent)' }}>Auto-detect OK</span></>}
+            {detectResult?.source === 'auto' && detectResult.issues.length > 0 && <> · <span style={{ color: 'var(--warn)' }}>{detectResult.issues.length} cột cần kiểm tra</span></>}
+          </div>
+        </div>
+        <button className="btn-ghost text-xs" onClick={onClose}>Đóng</button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--rule)' }}>
+              <th className="text-left py-2">Field</th>
+              <th className="text-left py-2">Cột Excel</th>
+              <th className="text-left py-2">Header đọc được</th>
+              <th className="text-left py-2" style={{ width: '80px' }}>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {FIELD_DEFS.map(fd => {
+              const curIdx = local[fd.key];
+              const hasIssue = issueKeys.has(fd.key);
+              const col = cols.find(c => c.idx === curIdx);
+              const hdr = col ? (col.r7 || col.r8 || '') : '';
+              return (
+                <tr key={fd.key} style={{ borderBottom: '1px dashed var(--rule)' }}>
+                  <td className="py-2 pr-2">{fd.label}</td>
+                  <td className="py-2 pr-2">
+                    <select value={curIdx}
+                      onChange={e => handleSelect(fd.key, parseInt(e.target.value, 10))}
+                      style={{ padding: '4px 8px', fontSize: '0.8rem', minWidth: '200px' }}>
+                      {colOptions.map(opt => (
+                        <option key={opt.idx} value={opt.idx}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="py-2 pr-2 text-xs num" style={{ color: 'var(--ink-muted)', maxWidth: '250px' }}>
+                    {hdr.replace(/\s+/g, ' ')}
+                  </td>
+                  <td className="py-2 text-xs">
+                    {hasIssue ? <span style={{ color: 'var(--warn)' }}>⚠ Kiểm tra</span> : <span style={{ color: 'var(--accent)' }}>✓</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {preview.length > 0 && (
+        <div className="mt-4 pt-4" style={{ borderTop: '1px dashed var(--rule)' }}>
+          <div className="text-xs tracking-wider uppercase mb-2" style={{ color: 'var(--ink-muted)' }}>
+            Preview 3 NV đầu (từ {ftSheetName})
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs num">
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--rule)' }}>
+                  <th className="text-left py-1">Mã NV</th>
+                  <th className="text-right py-1">Tổng TN</th>
+                  <th className="text-right py-1">BHXH DN</th>
+                  <th className="text-right py-1">BHXH NLĐ</th>
+                  <th className="text-right py-1">TNCN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((p, i) => (
+                  <tr key={i} style={{ borderBottom: '1px dashed var(--rule)' }}>
+                    <td className="py-1">{p.manv || '—'}</td>
+                    <td className="text-right py-1">{p.tongTN ? FORMAT_VND(p.tongTN) : '—'}</td>
+                    <td className="text-right py-1">{p.bhxhDN ? FORMAT_VND(p.bhxhDN) : '—'}</td>
+                    <td className="text-right py-1">{p.bhxhNLD ? FORMAT_VND(p.bhxhNLD) : '—'}</td>
+                    <td className="text-right py-1">{p.tncn ? FORMAT_VND(p.tncn) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-xs mt-2" style={{ color: 'var(--ink-muted)' }}>
+            Nếu số liệu có vẻ sai, đổi dropdown phía trên cho đến khi khớp. Rồi bấm Áp dụng.
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 pt-4 flex gap-2 flex-wrap" style={{ borderTop: '1px dashed var(--rule)' }}>
+        <button className="btn-primary" onClick={handleApplyAndSave}>✓ Áp dụng &amp; Lưu cho file tương tự</button>
+        <button className="btn-ghost" onClick={handleApply}>Áp dụng (không lưu)</button>
+        <button className="btn-ghost text-xs" onClick={onReset}>↺ Reset về auto-detect</button>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   MAIN APP
+   ===================================================================== */
+function App() {
+  const [userRules, setUserRules] = useState(() => loadUserRules());
+  const [fileWb, setFileWb] = useState(null);
+  const [fileName, setFileName] = useState(null);
+  const [parsed, setParsed] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [fileMeta, setFileMeta] = useState(() =>
+    Array(6).fill(null).map(() => ({ docNum: 'NVK8888T1/PREP28', date: '' }))
+  );
+  const [dragActive, setDragActive] = useState(false);
+  const [showRulesPanel, setShowRulesPanel] = useState(false);
+  const [showRuleManager, setShowRuleManager] = useState(false);
+  const [skippedTeams, setSkippedTeams] = useState(new Set());
+  const [sheetMap, setSheetMap] = useState({}); // { [sheetName]: 'Fulltime'|'Parttime'|'NSNN'|'skip' }
+  // Column mapping state
+  const [columnMapping, setColumnMapping] = useState({ ...DEFAULT_COLS });
+  const [detectResult, setDetectResult] = useState(null); // { mapping, issues, fp, autoApplied, source }
+  const [showMappingPanel, setShowMappingPanel] = useState(false);
+
+  // Re-process whenever fileWb or userRules or skippedTeams or sheetMap or columnMapping change
+  useEffect(() => {
+    if (!fileWb) return;
+    setCurrentColumns(columnMapping);
+    reprocess(fileWb);
+  }, [fileWb, userRules, skippedTeams, sheetMap, columnMapping]);
+
+  const reprocess = (wb) => {
+    setProcessing(true);
+    try {
+      let period = null;
+      const warnings = [];
+      const bySheet = {};
+      const allPending = [];
+      // Seen kinds for duplicate detection
+      const seenKinds = {};
+
+      for (const sheetName of wb.SheetNames) {
+        const kind = classifySheet(sheetName, sheetMap);
+        if (!kind) continue;
+        if (seenKinds[kind]) {
+          warnings.push(`Có nhiều sheet được gán là ${kind}: "${seenKinds[kind]}" và "${sheetName}". Chỉ xử lý sheet đầu.`);
+          continue;
+        }
+        seenKinds[kind] = sheetName;
+
+        const pn = parseSheetName(sheetName);
+        if (pn) {
+          const thisPeriod = { mm: pad2(pn.month), yyyy: pn.year };
+          if (!period) period = { month: pn.month, year: pn.year, mm: thisPeriod.mm, yyyy: thisPeriod.yyyy };
+          else if (period.month !== pn.month || period.year !== pn.year) {
+            warnings.push(`Sheet "${sheetName}" có kỳ khác (${thisPeriod.mm}/${thisPeriod.yyyy} vs ${period.mm}/${period.yyyy})`);
+          }
+        }
+        const ws = wb.Sheets[sheetName];
+        // Use period if known else placeholder
+        const usePeriod = period || { mm: '??', yyyy: '????' };
+        const { rows, pending } = processSheet(ws, kind, usePeriod, userRules);
+        const filteredPending = pending.filter(p => !skippedTeams.has(`${p.sheetType}|${p.name}`));
+        bySheet[kind] = rows;
+        allPending.push(...filteredPending);
+      }
+
+      if (!period) {
+        // No period detected from sheet names. User must specify.
+        warnings.push('Không tự động phát hiện được kỳ (tháng/năm) từ tên sheet. Vui lòng kiểm tra.');
+        // Try to avoid crashing: use placeholder period but show warning
+        period = { month: 0, year: 0, mm: '??', yyyy: '????' };
+      }
+
+      if (Object.keys(seenKinds).length === 0) {
+        throw new Error('Không nhận diện được sheet Fulltime/Parttime/NSNN nào. Hãy dùng phần "Gán sheet thủ công" phía dưới.');
+      }
+
+      const allRows = [...(bySheet.Fulltime || []), ...(bySheet.Parttime || []), ...(bySheet.NSNN || [])];
+      const byTK = {};
+      for (const r of allRows) byTK[r.tkNo] = (byTK[r.tkNo] || 0) + r.soTien;
+      const total = allRows.reduce((s, r) => s + r.soTien, 0);
+      setParsed({ period, rows: allRows, bySheet, byTK, total, warnings, pending: allPending });
+      setError(null);
+    } catch (e) {
+      console.error(e);
+      setError(e.message || String(e));
+      setParsed(null);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleFile = useCallback(async (file) => {
+    setError(null); setParsed(null); setProcessing(true);
+    setSkippedTeams(new Set());
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { cellFormula: true, cellDates: false });
+      // Initialize sheetMap: only set 'skip' for sheets we can't auto-detect.
+      const initMap = {};
+      for (const n of wb.SheetNames) {
+        const pn = parseSheetName(n);
+        if (!pn) initMap[n] = 'skip';
+      }
+
+      // Find Fulltime sheet (considering initial sheetMap) to run column detection.
+      let ftSheetName = null;
+      for (const n of wb.SheetNames) {
+        if (initMap[n] === 'skip') continue;
+        const pn = parseSheetName(n);
+        if (pn && pn.kind === 'Fulltime') { ftSheetName = n; break; }
+      }
+
+      let newMapping = { ...DEFAULT_COLS };
+      let detect = null;
+      if (ftSheetName) {
+        const ws = wb.Sheets[ftSheetName];
+        const fp = computeWorkbookFingerprint(ws);
+        const saved = loadSavedMappings()[fp];
+        if (saved && saved.mapping) {
+          // Use saved user-confirmed mapping
+          newMapping = { ...DEFAULT_COLS, ...saved.mapping };
+          detect = { mapping: saved.mapping, issues: [], fp, source: 'saved', autoApplied: true, sheetName: ftSheetName };
+        } else {
+          const result = autoDetectColumns(ws);
+          newMapping = { ...DEFAULT_COLS, ...result.mapping };
+          detect = { mapping: result.mapping, issues: result.issues, fp, source: 'auto', autoApplied: true, sheetName: ftSheetName };
+        }
+      }
+      setColumnMapping(newMapping);
+      setDetectResult(detect);
+      setSheetMap(initMap);
+      setFileName(file.name);
+      setFileWb(wb);
+    } catch (e) {
+      console.error(e);
+      setError(e.message || String(e));
+      setProcessing(false);
+    }
+  }, []);
+
+  // Helper to get effective meta for file i (1-based). Falls back to defaults.
+  const getEffectiveMeta = (i) => {
+    const m = fileMeta[i - 1] || { docNum: '', date: '' };
+    const defaultDate = parsed
+      ? `${pad2(lastDayOfMonth(parsed.period.yyyy, parsed.period.mm))}/${parsed.period.mm}/${parsed.period.yyyy}`
+      : '';
+    return {
+      docNum: (m.docNum || '').trim() || 'NVK8888T1/PREP28',
+      date: (m.date || '').trim() || defaultDate,
+    };
+  };
+  const updateMeta = (i, field, value) => {
+    setFileMeta(fm => fm.map((m, idx) => idx === i - 1 ? { ...m, [field]: value } : m));
+  };
+
+  // Returns {rows, filename} for a given file number
+  const generateFileData = (fileNum) => {
+    if (!parsed || !fileWb) return null;
+    const period = parsed.period;
+    if (fileNum === 1) return { rows: generateFile1_Salary(fileWb, period, userRules, sheetMap).rows, filename: 'F1_ChiPhiLuong' };
+    if (fileNum === 2) return { rows: generateFile2_TNCN(fileWb, period, sheetMap).rows, filename: 'F2_ThueTNCN' };
+    if (fileNum === 3) return { rows: generateFile3_KPCD_DN(fileWb, period, userRules, sheetMap).rows, filename: 'F3_KPCD_DN' };
+    if (fileNum === 4) return { rows: generateFile4_CPBH(fileWb, period, userRules, sheetMap).rows, filename: 'F4_ChiPhiBaoHiem' };
+    if (fileNum === 5) return { rows: generateFile5_KhauTruBH(fileWb, period, sheetMap).rows, filename: 'F5_KhauTruBH_VaoLuong' };
+    if (fileNum === 6) return { rows: generateFile6_KPCD_NLD(fileWb, period, userRules, sheetMap).rows, filename: 'F6_KPCD_NLD' };
+    return null;
+  };
+
+  const handleDownloadFile = (fileNum) => {
+    if (!parsed || !fileWb) return;
+    const data = generateFileData(fileNum);
+    if (!data || data.rows.length === 0) {
+      alert(`File ${fileNum} không có dữ liệu để xuất.`);
+      return;
+    }
+    const meta = getEffectiveMeta(fileNum);
+    const wb = buildMisaWorkbook(data.rows, parsed.period, meta.docNum, meta.date);
+    XLSX.writeFile(wb, `MISA_${data.filename}_T${parsed.period.mm}_${parsed.period.yyyy}.xlsx`);
+  };
+
+  // For summary display of each file
+  const fileSummaries = useMemo(() => {
+    if (!parsed || !fileWb) return null;
+    const period = parsed.period;
+    return {
+      f1: parsed.rows,
+      f2: generateFile2_TNCN(fileWb, period, sheetMap).rows,
+      f3: generateFile3_KPCD_DN(fileWb, period, userRules, sheetMap).rows,
+      f4: generateFile4_CPBH(fileWb, period, userRules, sheetMap).rows,
+      f5: generateFile5_KhauTruBH(fileWb, period, sheetMap).rows,
+      f6: generateFile6_KPCD_NLD(fileWb, period, userRules, sheetMap).rows,
+    };
+  }, [parsed, fileWb, userRules, sheetMap]);
+
+  const handleDownloadAllZip = async () => {
+    if (!parsed || !fileWb) return;
+    if (typeof JSZip === 'undefined') {
+      alert('Thư viện JSZip chưa tải xong. Vui lòng chờ vài giây và thử lại.');
+      return;
+    }
+    const zip = new JSZip();
+    let count = 0;
+    for (let i = 1; i <= 6; i++) {
+      const data = generateFileData(i);
+      if (!data || data.rows.length === 0) continue;
+      const meta = getEffectiveMeta(i);
+      const wb = buildMisaWorkbook(data.rows, parsed.period, meta.docNum, meta.date);
+      const xlsxBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+      zip.file(`MISA_${data.filename}_T${parsed.period.mm}_${parsed.period.yyyy}.xlsx`, xlsxBuf);
+      count++;
+    }
+    if (count === 0) {
+      alert('Không có file nào để xuất.');
+      return;
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MISA_6files_T${parsed.period.mm}_${parsed.period.yyyy}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault(); setDragActive(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  };
+
+  const savePendingRule = (pending, rule) => {
+    const key = `${pending.sheetType}|${pending.name}`;
+    const next = { ...userRules, [key]: rule };
+    setUserRules(next);
+    saveUserRules(next);
+  };
+
+  const skipPending = (pending) => {
+    const key = `${pending.sheetType}|${pending.name}`;
+    setSkippedTeams(new Set([...skippedTeams, key]));
+  };
+
+  const deleteUserRule = (key) => {
+    const next = { ...userRules };
+    delete next[key];
+    setUserRules(next);
+    saveUserRules(next);
+  };
+
+  const clearAllUserRules = () => {
+    if (!confirm('Xóa tất cả rule đã lưu? Lần sau mở file, tool sẽ hỏi lại từ đầu.')) return;
+    setUserRules({});
+    saveUserRules({});
+  };
+
+  const exportUserRules = () => {
+    const blob = new Blob([JSON.stringify(userRules, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'prep_misa_user_rules.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importUserRules = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    f.text().then(txt => {
+      try {
+        const parsed = JSON.parse(txt);
+        const next = { ...userRules, ...parsed };
+        setUserRules(next); saveUserRules(next);
+        alert(`Đã nhập ${Object.keys(parsed).length} rule.`);
+      } catch (err) {
+        alert('File không hợp lệ: ' + err.message);
+      }
+    });
+  };
+
+  const sortedTKs = useMemo(() => {
+    if (!parsed) return [];
+    return Object.entries(parsed.byTK).sort(([a], [b]) => a.localeCompare(b));
+  }, [parsed]);
+
+  const userRuleKeys = Object.keys(userRules);
+  const hasUserRules = userRuleKeys.length > 0;
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
+      <div className="max-w-6xl mx-auto px-8 py-12">
+        <header className="mb-10 pb-6" style={{ borderBottom: '1px solid var(--rule)' }}>
+          <div className="flex items-baseline justify-between flex-wrap gap-4">
+            <div>
+              <div className="text-xs tracking-widest mb-2" style={{ color: 'var(--accent-warm)' }}>
+                PREP &mdash; KẾ TOÁN
+              </div>
+              <h1 className="serif text-4xl md:text-5xl leading-tight" style={{ color: 'var(--accent)' }}>
+                Tool import chi phí lương
+              </h1>
+              <p className="mt-2" style={{ color: 'var(--ink-muted)' }}>
+                Bảng lương Excel → Chứng từ nghiệp vụ khác để nhập vào MISA AMIS Kế toán.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="btn-ghost text-xs" onClick={() => { setShowRuleManager(!showRuleManager); setShowRulesPanel(false); }}>
+                {showRuleManager ? 'Đóng quản lý rule' : 'Quản lý rule'}
+              </button>
+              {hasUserRules && !showRuleManager && (
+                <button className="btn-ghost text-xs" onClick={() => setShowRulesPanel(!showRulesPanel)}>
+                  {userRuleKeys.length} rule đã sửa/thêm
+                </button>
+              )}
+              <div className="text-xs text-right" style={{ color: 'var(--ink-muted)' }}>
+                <div>v9.5</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {showRuleManager && (
+          <RuleManagerPanel
+            userRules={userRules}
+            onUpdate={(next) => { setUserRules(next); saveUserRules(next); }}
+            onClose={() => setShowRuleManager(false)}
+          />
+        )}
+
+        {!showRuleManager && <>
+
+        {/* User rules panel */}
+        {showRulesPanel && (
+          <section className="mb-8">
+            <div className="card p-6">
+              <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+                <h2 className="serif text-lg">Rule đã lưu cho bộ phận mới ({userRuleKeys.length})</h2>
+                <div className="flex gap-2 flex-wrap">
+                  <button className="btn-ghost text-xs" onClick={exportUserRules}>↓ Export JSON</button>
+                  <label className="btn-ghost text-xs cursor-pointer">
+                    ↑ Import JSON
+                    <input type="file" accept=".json" className="hidden" onChange={importUserRules} />
+                  </label>
+                  {hasUserRules && <button className="btn-danger" onClick={clearAllUserRules}>Xóa tất cả</button>}
+                </div>
+              </div>
+              {!hasUserRules && <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>Chưa có rule tùy chỉnh nào.</div>}
+              <div className="space-y-2">
+                {userRuleKeys.map(k => {
+                  const r = userRules[k];
+                  const [st, name] = k.split('|');
+                  return (
+                    <div key={k} className="flex items-start justify-between gap-3 py-2" style={{ borderBottom: '1px dashed var(--rule)' }}>
+                      <div className="text-xs flex-1">
+                        <div className="font-medium">{name} <span style={{ color: 'var(--ink-muted)' }}>({st})</span></div>
+                        <div className="num mt-1" style={{ color: 'var(--ink-muted)' }}>
+                          TK: {r.tk} {r.tkHH && `· HH: ${r.tkHH}`} {r.splits && `· ${r.splits[0].maNVs.length} NV tách %`}
+                        </div>
+                      </div>
+                      <button className="btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => deleteUserRule(k)}>Xóa</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Upload */}
+        {!fileWb && (
+          <section className="mb-8">
+            <div className="flex items-baseline gap-3 mb-4">
+              <span className="serif text-2xl" style={{ color: 'var(--accent-warm)' }}>01</span>
+              <h2 className="serif text-xl">Tải lên file bảng lương</h2>
+            </div>
+            <div
+              className={`dropzone ${dragActive ? 'active' : ''} p-12 text-center cursor-pointer`}
+              onDragEnter={e => { e.preventDefault(); setDragActive(true); }}
+              onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={onDrop}
+              onClick={() => document.getElementById('file-input').click()}
+            >
+              <input id="file-input" type="file" accept=".xlsx,.xls,.xlsm" className="hidden"
+                onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
+              <div className="serif text-2xl mb-2">Kéo thả file .xlsx</div>
+              <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>hoặc click để chọn</div>
+              <div className="mt-6 text-xs" style={{ color: 'var(--ink-muted)' }}>
+                File phải có các sheet chứa "Fulltime", "Parttime", "NSNN" (tự nhận diện linh hoạt - có thể gán thủ công nếu cần)
+              </div>
+            </div>
+            {processing && <div className="mt-4 text-center num text-sm" style={{ color: 'var(--ink-muted)' }}>Đang xử lý...</div>}
+            {error && (
+              <div className="mt-4 p-4 card" style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
+                <div className="tag mb-2">Lỗi</div><div className="text-sm">{error}</div>
+              </div>
+            )}
+            {error && fileWb && fileWb.SheetNames && (
+              <div className="mt-4 card p-4">
+                <div className="text-sm font-medium mb-2">Gán sheet thủ công</div>
+                <div className="text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
+                  Tool không tự nhận diện được. Chọn kind cho từng sheet dưới đây:
+                </div>
+                <div className="space-y-2">
+                  {fileWb.SheetNames.map(sn => {
+                    const auto = parseSheetName(sn);
+                    const autoKind = auto ? auto.kind : null;
+                    const override = sheetMap[sn];
+                    const current = override !== undefined ? override : 'auto';
+                    return (
+                      <div key={sn} className="flex items-center gap-3 flex-wrap py-1">
+                        <div className="flex-1 min-w-0 text-sm" style={{ wordBreak: 'break-word' }}>
+                          <span className="num">{sn}</span>
+                          {autoKind && (
+                            <span className="tag ml-2" style={{ color: 'var(--ink-muted)' }}>
+                              Auto: {autoKind}{auto ? ` · T${pad2(auto.month)}/${auto.year}` : ''}
+                            </span>
+                          )}
+                          {!autoKind && (
+                            <span className="tag ml-2" style={{ color: 'var(--warn)' }}>Không nhận diện được</span>
+                          )}
+                        </div>
+                        <select
+                          value={current}
+                          onChange={e => {
+                            const v = e.target.value;
+                            setSheetMap(prev => {
+                              const next = { ...prev };
+                              if (v === 'auto') delete next[sn];
+                              else next[sn] = v;
+                              return next;
+                            });
+                          }}
+                          style={{ padding: '4px 8px', fontSize: '0.8rem', minWidth: '140px' }}
+                        >
+                          <option value="auto">Tự động{autoKind ? ` (${autoKind})` : ' (bỏ qua)'}</option>
+                          <option value="Fulltime">Fulltime</option>
+                          <option value="Parttime">Parttime</option>
+                          <option value="NSNN">NSNN</option>
+                          <option value="skip">Bỏ qua</option>
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Pending teams wizard */}
+        {parsed && parsed.pending.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-baseline gap-3 mb-4">
+              <span className="serif text-2xl" style={{ color: 'var(--warn)' }}>!</span>
+              <h2 className="serif text-xl" style={{ color: 'var(--warn)' }}>
+                Phát hiện {parsed.pending.length} bộ phận mới cần thiết lập
+              </h2>
+            </div>
+            <div className="card-warn p-4 mb-4 text-sm">
+              Các bộ phận dưới đây chưa có rule hạch toán. Điền thông tin để tool biết cách hạch toán.
+              Rule sẽ được lưu vào trình duyệt, lần sau upload file không cần nhập lại.
+            </div>
+            {parsed.pending.map((p, i) => (
+              <PendingTeamForm
+                key={`${p.sheetType}|${p.name}`}
+                pending={p}
+                onSave={(rule) => savePendingRule(p, rule)}
+                onCancel={() => skipPending(p)}
+              />
+            ))}
+          </section>
+        )}
+
+        {/* Results */}
+        {parsed && (
+          <>
+            <section className="mb-8">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="serif text-2xl" style={{ color: 'var(--accent-warm)' }}>
+                  {parsed.pending.length > 0 ? '02' : '02'}
+                </span>
+                <h2 className="serif text-xl">Kết quả phân tích</h2>
+              </div>
+
+              <div className="card p-6 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div>
+                    <div className="text-xs tracking-wider uppercase" style={{ color: 'var(--ink-muted)' }}>Kỳ</div>
+                    <div className="serif text-3xl mt-1">{parsed.period.mm}/{parsed.period.yyyy}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs tracking-wider uppercase" style={{ color: 'var(--ink-muted)' }}>Số dòng bút toán</div>
+                    <div className="serif text-3xl mt-1 num">{parsed.rows.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs tracking-wider uppercase" style={{ color: 'var(--ink-muted)' }}>Tổng số tiền (VND)</div>
+                    <div className="serif text-3xl mt-1 num">{FORMAT_VND(parsed.total)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs tracking-wider uppercase" style={{ color: 'var(--ink-muted)' }}>Số TK Nợ khác nhau</div>
+                    <div className="serif text-3xl mt-1 num">{sortedTKs.length}</div>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4" style={{ borderTop: '1px dashed var(--rule)' }}>
+                  <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                    File: <span className="num">{fileName}</span>
+                    {' · '}Fulltime: <span className="num">{(parsed.bySheet.Fulltime || []).length}</span>
+                    {' · '}Parttime: <span className="num">{(parsed.bySheet.Parttime || []).length}</span>
+                    {' · '}NSNN: <span className="num">{(parsed.bySheet.NSNN || []).length}</span>
+                  </div>
+                </div>
+              </div>
+
+              {parsed.warnings.length > 0 && (
+                <div className="card p-4 mb-4" style={{ borderColor: 'var(--warn)' }}>
+                  <div className="tag mb-2" style={{ color: 'var(--warn)' }}>Cảnh báo ({parsed.warnings.length})</div>
+                  <ul className="text-sm space-y-1" style={{ color: 'var(--warn)' }}>
+                    {parsed.warnings.map((w, i) => <li key={i}>• {w}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Column mapping info bar + button to open panel */}
+              {fileWb && detectResult && (
+                <div className="flex items-center gap-3 mb-4 text-xs flex-wrap">
+                  <div style={{ color: 'var(--ink-muted)' }}>
+                    Mapping cột:
+                    {detectResult.source === 'saved' && <span className="ml-2" style={{ color: 'var(--accent)' }}>✓ Dùng mapping đã lưu cho file này</span>}
+                    {detectResult.source === 'auto' && detectResult.issues.length === 0 && <span className="ml-2" style={{ color: 'var(--accent)' }}>✓ Auto-detect đủ 14/14 cột</span>}
+                    {detectResult.source === 'auto' && detectResult.issues.length > 0 && <span className="ml-2" style={{ color: 'var(--warn)' }}>⚠ {detectResult.issues.length} cột cần kiểm tra lại</span>}
+                  </div>
+                  <button className="btn-ghost text-xs" onClick={() => setShowMappingPanel(!showMappingPanel)}>
+                    {showMappingPanel ? 'Đóng' : 'Kiểm tra / Sửa mapping cột'}
+                  </button>
+                </div>
+              )}
+
+              {showMappingPanel && fileWb && detectResult && (
+                <ColumnMappingPanel
+                  wb={fileWb}
+                  ftSheetName={detectResult.sheetName}
+                  mapping={columnMapping}
+                  detectResult={detectResult}
+                  onSave={(newMapping, persist) => {
+                    setColumnMapping({ ...DEFAULT_COLS, ...newMapping });
+                    if (persist && detectResult.fp) {
+                      saveMappingForFP(detectResult.fp, newMapping, detectResult.sheetName);
+                      setDetectResult(r => ({ ...r, source: 'saved', mapping: newMapping, issues: [] }));
+                      alert('Đã lưu mapping. Lần sau upload file có cấu trúc tương tự, tool sẽ tự apply.');
+                    }
+                    setShowMappingPanel(false);
+                  }}
+                  onReset={() => {
+                    if (detectResult.fp) deleteMappingForFP(detectResult.fp);
+                    // Re-run auto-detect
+                    const ws = fileWb.Sheets[detectResult.sheetName];
+                    const result = autoDetectColumns(ws);
+                    setColumnMapping({ ...DEFAULT_COLS, ...result.mapping });
+                    setDetectResult({ ...detectResult, source: 'auto', mapping: result.mapping, issues: result.issues });
+                  }}
+                  onClose={() => setShowMappingPanel(false)}
+                />
+              )}
+
+              {fileWb && (
+                <details className="card p-4 mb-4" open={parsed.warnings.length > 0}>
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Gán sheet thủ công ({fileWb.SheetNames.length} sheet trong file)
+                  </summary>
+                  <div className="mt-3 text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
+                    Nếu tool nhận diện sai sheet Fulltime/Parttime/NSNN, chọn thủ công ở đây.
+                    Chọn "Tự động" để tool tự đoán theo tên sheet.
+                  </div>
+                  <div className="space-y-2">
+                    {fileWb.SheetNames.map(sn => {
+                      const auto = parseSheetName(sn);
+                      const autoKind = auto ? auto.kind : null;
+                      const override = sheetMap[sn];
+                      // current: what the dropdown should display
+                      const current = override !== undefined ? override : 'auto';
+                      return (
+                        <div key={sn} className="flex items-center gap-3 flex-wrap py-1">
+                          <div className="flex-1 min-w-0 text-sm" style={{ wordBreak: 'break-word' }}>
+                            <span className="num">{sn}</span>
+                            {autoKind && (
+                              <span className="tag ml-2" style={{ color: 'var(--ink-muted)' }}>
+                                Auto: {autoKind}{auto ? ` · T${pad2(auto.month)}/${auto.year}` : ''}
+                              </span>
+                            )}
+                            {!autoKind && (
+                              <span className="tag ml-2" style={{ color: 'var(--warn)' }}>Không nhận diện được</span>
+                            )}
+                          </div>
+                          <select
+                            value={current}
+                            onChange={e => {
+                              const v = e.target.value;
+                              setSheetMap(prev => {
+                                const next = { ...prev };
+                                if (v === 'auto') delete next[sn];
+                                else next[sn] = v;
+                                return next;
+                              });
+                            }}
+                            style={{ padding: '4px 8px', fontSize: '0.8rem', minWidth: '140px' }}
+                          >
+                            <option value="auto">Tự động{autoKind ? ` (${autoKind})` : ' (bỏ qua)'}</option>
+                            <option value="Fulltime">Fulltime</option>
+                            <option value="Parttime">Parttime</option>
+                            <option value="NSNN">NSNN</option>
+                            <option value="skip">Bỏ qua</option>
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              )}
+
+              <details className="card p-4 mb-4">
+                <summary className="cursor-pointer text-sm font-medium">Tổng theo Tài khoản Nợ</summary>
+                <table className="w-full mt-4 text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--rule)' }}>
+                      <th className="text-left py-2">TK Nợ</th>
+                      <th className="text-right py-2">Số tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedTKs.map(([tk, amount]) => (
+                      <tr key={tk} style={{ borderBottom: '1px dashed var(--rule)' }}>
+                        <td className="py-2 num font-medium">{tk}</td>
+                        <td className="py-2 text-right num">{FORMAT_VND(amount)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="py-2 font-medium">TỔNG</td>
+                      <td className="py-2 text-right num font-medium">{FORMAT_VND(parsed.total)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </details>
+
+              <details className="card p-4 mb-4" open>
+                <summary className="cursor-pointer text-sm font-medium">Chi tiết {parsed.rows.length} bút toán</summary>
+                <div className="overflow-x-auto mt-4">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--rule)' }}>
+                        <th className="text-left py-2 pr-2 w-8">#</th>
+                        <th className="text-left py-2 pr-2">Diễn giải hạch toán</th>
+                        <th className="text-right py-2 pr-2 w-16">TK Nợ</th>
+                        <th className="text-right py-2 pr-2 w-16">TK Có</th>
+                        <th className="text-right py-2 pr-2 num w-32">Số tiền</th>
+                        <th className="text-left py-2 pr-1 w-20">Kênh</th>
+                        <th className="text-left py-2 pr-1 w-20">Dự án</th>
+                        <th className="text-left py-2 pr-1 w-20">SP</th>
+                        <th className="text-left py-2 w-12">TT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsed.rows.map((r, i) => (
+                        <tr key={i} style={{ borderBottom: '1px dashed var(--rule)' }}>
+                          <td className="py-2 pr-2 num" style={{ color: 'var(--ink-muted)' }}>{i + 1}</td>
+                          <td className="py-2 pr-2">{r.dienGiaiHT}</td>
+                          <td className="py-2 pr-2 text-right num">{r.tkNo}</td>
+                          <td className="py-2 pr-2 text-right num">{r.tkCo}</td>
+                          <td className="py-2 pr-2 text-right num">{FORMAT_VND(r.soTien)}</td>
+                          <td className="py-2 pr-1" style={{ color: 'var(--ink-muted)' }}>{r.kenh}</td>
+                          <td className="py-2 pr-1" style={{ color: 'var(--ink-muted)' }}>{r.duAn}</td>
+                          <td className="py-2 pr-1" style={{ color: 'var(--ink-muted)' }}>{r.sanPham}</td>
+                          <td className="py-2" style={{ color: 'var(--ink-muted)' }}>{r.thiTruong}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+
+            <section className="mb-8">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="serif text-2xl" style={{ color: 'var(--accent-warm)' }}>03</span>
+                <h2 className="serif text-xl">Các file xuất để import MISA</h2>
+              </div>
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-4 pb-4 flex-wrap gap-3" style={{ borderBottom: '1px dashed var(--rule)' }}>
+                  <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                    Mỗi file có Số chứng từ và Ngày chứng từ riêng. Mặc định: <span className="num">NVK8888T1/PREP28</span> và <span className="num">{pad2(lastDayOfMonth(parsed.period.yyyy, parsed.period.month))}/{parsed.period.mm}/{parsed.period.yyyy}</span>.
+                  </div>
+                  <button className="btn-primary" onClick={handleDownloadAllZip} disabled={parsed.pending.length > 0}>
+                    ↓ Tải tất cả 6 file (.zip)
+                  </button>
+                </div>
+
+                {parsed.pending.length > 0 && (
+                  <div className="mb-4 p-3 text-xs" style={{ background: 'var(--warn-bg)', color: 'var(--warn)', border: '1px solid var(--warn)' }}>
+                    ⚠ Vui lòng thiết lập rule cho {parsed.pending.length} bộ phận mới trước khi xuất file.
+                  </div>
+                )}
+
+                {fileSummaries && [
+                  { n: 1, name: 'File hạch toán lương', desc: 'Chi phí lương + hoa hồng theo từng bộ phận (3 sheets: FT+PT+NSNN)', rows: fileSummaries.f1 },
+                  { n: 2, name: 'File hạch toán thuế TNCN', desc: 'Nợ 3341 / Có 3335. Tổng thuế TNCN (cột AD) của cả 3 sheets', rows: fileSummaries.f2 },
+                  { n: 3, name: 'File hạch toán KPCĐ (DN trích)', desc: 'Nợ 6xx theo bộ phận / Có 3382. Cột U, sheet Fulltime', rows: fileSummaries.f3 },
+                  { n: 4, name: 'File hạch toán chi phí bảo hiểm', desc: 'Nợ 6xx theo bộ phận / Có 3383, 3384, 3386, 3389. Cột Q/R/S/T, sheet Fulltime (4 loại BH)', rows: fileSummaries.f4 },
+                  { n: 5, name: 'File khấu trừ bảo hiểm vào lương', desc: 'Nợ 3341 / Có 3383, 3384, 3386. Cột V/W/X, sheet Fulltime', rows: fileSummaries.f5 },
+                  { n: 6, name: 'File hạch toán KPCĐ trừ vào lương NLĐ', desc: 'Nợ 3341 / Có 3382. Cột Y theo bộ phận, sheet Fulltime', rows: fileSummaries.f6 },
+                ].map(f => {
+                  const total = (f.rows || []).reduce((s, r) => s + r.soTien, 0);
+                  const defaultDate = `${pad2(lastDayOfMonth(parsed.period.yyyy, parsed.period.month))}/${parsed.period.mm}/${parsed.period.yyyy}`;
+                  const meta = fileMeta[f.n - 1] || { docNum: '', date: '' };
+                  return (
+                    <div key={f.n} className="py-3" style={{ borderBottom: '1px dashed var(--rule)' }}>
+                      <div className="flex items-start gap-4 mb-2">
+                        <div className="serif text-lg" style={{ color: 'var(--accent-warm)', minWidth: '2rem' }}>0{f.n}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">{f.name}</div>
+                          <div className="text-xs mt-0.5" style={{ color: 'var(--ink-muted)' }}>{f.desc}</div>
+                          <div className="text-xs num mt-1" style={{ color: 'var(--accent)' }}>
+                            {f.rows.length} dòng bút toán · Tổng: {FORMAT_VND(total)} VND
+                          </div>
+                        </div>
+                        <button className="btn-ghost text-xs" onClick={() => handleDownloadFile(f.n)}
+                          disabled={parsed.pending.length > 0 || f.rows.length === 0}>
+                          ↓ Tải file
+                        </button>
+                      </div>
+                      <div className="flex gap-3 ml-12 flex-wrap" style={{ fontSize: '0.7rem' }}>
+                        <div style={{ minWidth: '200px', flex: '1 1 200px' }}>
+                          <label className="block text-xs mb-0.5" style={{ color: 'var(--ink-muted)' }}>Số chứng từ</label>
+                          <input type="text" value={meta.docNum} placeholder="NVK8888T1/PREP28"
+                            onChange={e => updateMeta(f.n, 'docNum', e.target.value)}
+                            style={{ padding: '4px 8px', fontSize: '0.8rem' }} />
+                        </div>
+                        <div style={{ minWidth: '160px', flex: '0 0 160px' }}>
+                          <label className="block text-xs mb-0.5" style={{ color: 'var(--ink-muted)' }}>Ngày chứng từ (dd/mm/yyyy)</label>
+                          <input type="text" value={meta.date} placeholder={defaultDate}
+                            onChange={e => updateMeta(f.n, 'date', e.target.value)}
+                            style={{ padding: '4px 8px', fontSize: '0.8rem' }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 text-center">
+                <button className="btn-ghost text-xs" onClick={() => { setFileWb(null); setFileName(null); setParsed(null); setError(null); setSkippedTeams(new Set()); setSheetMap({}); setColumnMapping({ ...DEFAULT_COLS }); setDetectResult(null); setShowMappingPanel(false); resetCurrentColumns(); }}>
+                  ← Xử lý file khác
+                </button>
+              </div>
+            </section>
+          </>
+        )}
+
+        </>}
+
+        <footer className="mt-16 pt-6 text-xs text-center" style={{ borderTop: '1px solid var(--rule)', color: 'var(--ink-muted)' }}>
+          Dữ liệu được xử lý hoàn toàn trong trình duyệt. Không có thông tin lương nào gửi đi đâu. Rule tùy chỉnh được lưu local trong trình duyệt này.
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+document.getElementById('loader').style.display = 'none';
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

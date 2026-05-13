@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Check Phân Bổ Doanh Thu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+:root {
+  --bg: #f5f1e8;
+  --bg-paper: #fcfaf4;
+  --bg-card: #ffffff;
+  --ink: #0c1821;
+  --ink-2: #1f2d3d;
+  --muted: #6b7280;
+  --muted-2: #9ca3af;
+  --border: #e6dfcf;
+  --border-strong: #d4cab3;
+  --accent: #0a4d3a;
+  --accent-2: #0d6049;
+  --success: #047857;
+  --success-bg: #ecfdf5;
+  --error: #b91c1c;
+  --error-bg: #fef2f2;
+  --warn: #92400e;
+  --warn-bg: #fef3c7;
+  --info: #1e40af;
+  --info-bg: #eff6ff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* HEADER */
+.app-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+
+.app-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.app-title {
+  font-family: 'Fraunces', serif;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.app-subtitle {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 15px;
+  max-width: 720px;
+}
+
+/* SECTIONS */
+.section {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.section-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.section-desc {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.section-body {
+  padding: 24px 22px;
+}
+
+/* UPLOAD ZONE - SINGLE LARGE */
+.upload-box-large {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-card);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 180px;
+}
+
+.upload-box-large:hover {
+  border-color: var(--accent);
+  background: #fafaf5;
+}
+
+.upload-box-large.dragover {
+  border-color: var(--accent);
+  background: #f0f9f4;
+  transform: scale(1.005);
+}
+
+.upload-icon-large {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 42px;
+  color: var(--muted-2);
+  margin-bottom: 16px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.upload-label-large {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.upload-hint-large {
+  color: var(--muted);
+  font-size: 13px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.upload-box-large input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.files-detected {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.files-detected:empty { display: none; }
+
+.file-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  position: relative;
+}
+
+.file-card.success { border-left: 4px solid var(--success); background: var(--success-bg); }
+.file-card.error { border-left: 4px solid var(--error); background: var(--error-bg); }
+.file-card.loading { border-left: 4px solid var(--info); }
+
+.file-card-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+
+.file-card.success .file-card-icon { background: var(--success); color: white; }
+.file-card.error .file-card-icon { background: var(--error); color: white; }
+.file-card.loading .file-card-icon { background: var(--info); color: white; }
+
+.file-card-body { flex: 1; min-width: 0; }
+
+.file-card-type {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.file-card-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  word-break: break-all;
+  margin-bottom: 4px;
+}
+
+.file-card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.file-card-remove {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--muted-2);
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  padding: 4px 6px;
+}
+
+.file-card-remove:hover { color: var(--error); }
+
+/* RULE MANAGER */
+.rule-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.rule-chip strong { color: var(--accent); }
+
+.rule-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--ink-2);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn.primary:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: white;
+}
+
+.btn.primary:disabled {
+  background: var(--muted-2);
+  border-color: var(--muted-2);
+  cursor: not-allowed;
+}
+
+.btn.danger {
+  color: var(--error);
+  border-color: #f3c0bc;
+}
+
+.btn.danger:hover {
+  background: var(--error-bg);
+  border-color: var(--error);
+}
+
+.btn.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.rule-table-wrap {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-card);
+  max-height: 360px;
+  overflow: auto;
+  display: none;
+}
+
+.rule-table-wrap.open { display: block; }
+
+.rule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rule-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--bg-paper);
+  z-index: 5;
+}
+
+.rule-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--bg-paper);
+}
+
+.rule-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.rule-table tr:hover td { background: #faf8f0; }
+
+.rule-table input, .rule-table select {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 6px;
+  font: inherit;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink);
+  border-radius: 2px;
+}
+
+.rule-table input:focus, .rule-table select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.rule-table .col-ma { width: 280px; }
+.rule-table .col-loai { width: 100px; }
+.rule-table .col-days { width: 90px; text-align: right; }
+.rule-table .col-act { width: 50px; text-align: center; }
+
+.rule-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+.rule-search-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-card);
+}
+
+.rule-search-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.rule-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 14px;
+  user-select: none;
+}
+
+.rule-toggle:hover { text-decoration: underline; }
+
+.rule-status-pill {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--info-bg);
+  color: var(--info);
+  margin-left: 8px;
+}
+
+.rule-status-pill.modified {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.rule-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-2);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.rule-delete-btn:hover { color: var(--error); }
+
+/* RUN SECTION */
+.run-section {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-paper) 100%);
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.15s;
+}
+
+.run-btn:hover:not(:disabled) {
+  background: var(--accent-2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(10,77,58,0.2);
+}
+
+.run-btn:disabled {
+  background: var(--muted-2);
+  cursor: not-allowed;
+}
+
+.run-arrow { font-family: 'IBM Plex Mono', monospace; font-size: 18px; }
+
+/* RESULTS */
+.results-section { display: none; }
+.results-section.visible { display: block; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+}
+
+.kpi-card.error { border-left: 4px solid var(--error); }
+.kpi-card.warn { border-left: 4px solid var(--warn); }
+.kpi-card.success { border-left: 4px solid var(--success); }
+.kpi-card.info { border-left: 4px solid var(--info); }
+
+.kpi-label {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.kpi-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-strong);
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--bg);
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+}
+
+.tab.active .tab-badge { background: var(--accent); color: white; }
+.tab-badge.error { background: var(--error-bg); color: var(--error); }
+.tab.active .tab-badge.error { background: var(--error); color: white; }
+.tab-badge.warn { background: var(--warn-bg); color: var(--warn); }
+.tab.active .tab-badge.warn { background: var(--warn); color: white; }
+
+.tab-content { display: none; padding-top: 20px; }
+.tab-content.active { display: block; }
+
+/* TABLE */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-paper);
+  border-bottom: 1px solid var(--border);
+}
+
+.table-toolbar input.filter-input {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-card);
+  min-width: 200px;
+}
+
+.table-toolbar input.filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-toolbar select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  background: var(--bg-card);
+}
+
+.table-toolbar .spacer { flex: 1; }
+
+.table-info {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.data-table-scroll {
+  max-height: 600px;
+  overflow: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--bg-paper);
+  z-index: 5;
+}
+
+.data-table th {
+  padding: 10px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+  background: var(--bg-paper);
+}
+
+.data-table th.num, .data-table td.num {
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0ead8;
+  vertical-align: top;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.data-table td.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+
+.data-table tr.row-error { background: #fff5f5; }
+.data-table tr.row-error:hover { background: #ffeded; }
+.data-table tr.row-warn { background: #fffbeb; }
+.data-table tr.row-warn:hover { background: #fef6d8; }
+.data-table tr:hover { background: #faf8f0; }
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-pill.ok { background: var(--success-bg); color: var(--success); }
+.status-pill.warn { background: var(--warn-bg); color: var(--warn); }
+.status-pill.err { background: var(--error-bg); color: var(--error); }
+.status-pill.info { background: var(--info-bg); color: var(--info); }
+
+.cell-issue {
+  background: #fef2f2;
+  color: var(--error);
+  font-weight: 500;
+}
+
+.cell-warn {
+  background: #fef9eb;
+  color: var(--warn);
+}
+
+.reason-line {
+  font-size: 11.5px;
+  line-height: 1.4;
+  padding: 1px 0;
+}
+.reason-line.err { color: var(--error); font-weight: 500; }
+.reason-line.warn { color: var(--warn); }
+
+/* Exclusion panel */
+.exclusion-panel {
+  margin-bottom: 16px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.exclusion-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  user-select: none;
+  list-style: none;
+}
+
+.exclusion-summary::-webkit-details-marker { display: none; }
+.exclusion-summary::before {
+  content: '▸';
+  margin-right: 8px;
+  color: var(--muted);
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+details[open] > .exclusion-summary::before { transform: rotate(90deg); }
+
+.exclusion-summary-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+.exclusion-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.exclusion-body p { padding-top: 12px; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.empty-state-icon {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 36px;
+  color: var(--muted-2);
+  margin-bottom: 14px;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.toast.error { background: var(--error); }
+.toast.success { background: var(--success); }
+
+/* ALERT BOX */
+.alert {
+  padding: 12px 16px;
+  border-radius: 3px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.alert-icon {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.alert.warn { background: var(--warn-bg); color: var(--warn); border-left: 3px solid var(--warn); }
+.alert.error { background: var(--error-bg); color: var(--error); border-left: 3px solid var(--error); }
+.alert.info { background: var(--info-bg); color: var(--info); border-left: 3px solid var(--info); }
+
+@media (max-width: 900px) {
+  .files-detected { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .app-title { font-size: 32px; }
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Footer */
+.app-footer {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="app-header">
+    <div class="app-eyebrow">Reconciliation Tool · v1.0</div>
+    <h1 class="app-title">Check Phân Bổ Doanh Thu</h1>
+    <p class="app-subtitle">Đối chiếu doanh thu phân bổ Misa với hóa đơn xuất Meinvoice. Kiểm tra tính đúng — đủ — chuẩn kỳ phân bổ theo rule đã thiết lập.</p>
+  </header>
+
+  <!-- STEP 1: UPLOAD -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-step">1</span>
+      <span class="section-title">Upload báo cáo</span>
+      <span class="section-desc">Chọn cùng lúc 2 file (.xlsx, .xls). Tool tự nhận diện loại file dựa trên tiêu đề cột — không phụ thuộc tên file hay thứ tự cột.</span>
+    </div>
+    <div class="section-body">
+      <label class="upload-box-large" id="uploadBox">
+        <div class="upload-icon-large">⤴</div>
+        <div class="upload-label-large">Kéo thả hoặc bấm để chọn 2 file</div>
+        <div class="upload-hint-large">Bảng kê Meinvoice + Báo cáo Misa Phân bổ DT</div>
+        <input type="file" accept=".xlsx,.xls" id="fileInput" multiple />
+      </label>
+      <div class="files-detected" id="filesDetected"></div>
+    </div>
+  </section>
+
+  <!-- STEP 2: RULE -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-step">2</span>
+      <span class="section-title">Rule thời gian phân bổ</span>
+      <span class="section-desc">Có thể chỉnh sửa. Thay đổi tự lưu vào trình duyệt.</span>
+    </div>
+    <div class="section-body">
+      <div class="rule-summary">
+        <div class="rule-chip">Tổng mã: <strong id="ruleCount">—</strong></div>
+        <div class="rule-chip">Mặc định: <strong id="ruleDefaultCount">295</strong></div>
+        <div class="rule-chip" id="ruleStatusChip">Trạng thái: <strong>Đang tải...</strong></div>
+        <div class="rule-actions">
+          <button class="btn small" id="btnAddRule">+ Thêm mã</button>
+          <button class="btn small" id="btnImportRule">Import</button>
+          <button class="btn small" id="btnExportRule">Export</button>
+          <button class="btn small danger" id="btnResetRule">Reset mặc định</button>
+        </div>
+      </div>
+      <div class="rule-toggle" id="ruleToggle">
+        <span id="ruleToggleIcon">▸</span>
+        <span id="ruleToggleText">Hiện bảng rule để chỉnh sửa</span>
+      </div>
+      <div class="rule-table-wrap" id="ruleTableWrap">
+        <div class="rule-search-bar" style="padding: 12px;">
+          <input type="text" id="ruleSearchInput" placeholder="Tìm theo mã, tên, hoặc loại sản phẩm..." />
+          <button class="btn small" id="btnAddRuleInline">+ Dòng mới</button>
+        </div>
+        <table class="rule-table">
+          <thead>
+            <tr>
+              <th class="col-ma">Mã sản phẩm</th>
+              <th>Tên sản phẩm</th>
+              <th class="col-loai">Loại</th>
+              <th class="col-days">Số ngày PB</th>
+              <th class="col-act"></th>
+            </tr>
+          </thead>
+          <tbody id="ruleTableBody"></tbody>
+        </table>
+      </div>
+      <input type="file" id="ruleImportInput" accept=".json,.csv" style="display:none" />
+    </div>
+  </section>
+
+  <!-- STEP 3: RUN -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-step">3</span>
+      <span class="section-title">Chạy đối chiếu</span>
+      <span class="section-desc" id="runSectionDesc">Cần upload đủ 2 file để tiến hành.</span>
+    </div>
+    <div class="run-section">
+      <button class="run-btn" id="btnRun" disabled>
+        <span id="runBtnLabel">Chạy đối chiếu</span>
+        <span class="run-arrow" id="runBtnArrow">→</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="results-section" id="resultsSection">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-step">✓</span>
+        <span class="section-title">Kết quả đối chiếu</span>
+        <span class="section-desc">
+          <button class="btn small" id="btnExportAll">Xuất Excel kết quả</button>
+        </span>
+      </div>
+      <div class="section-body">
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="tabs" id="resultsTabs"></div>
+        <div id="tabContents"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    Check Phân Bổ Doanh Thu · Standalone offline tool · Dữ liệu được xử lý hoàn toàn trong trình duyệt, không gửi lên server.
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="defaultRulesJSON" type="application/json">[{"ma":"DVĐT_HSK1_HSK3","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 1 đến 3","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_COBAN_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Cơ bản đến Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_COBAN_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Cơ bản đến Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_COBAN_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Cơ bản (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_COBAN_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Cơ bản đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_COBAN_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Cơ bản (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Trung cấp đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK2_HSK4_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 2 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTAG_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_TIENGANH_SOCAP_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Trung cấp (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK1_HSK3_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 1 đến 3","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Trung cấp đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_GT_SOCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Sơ cấp (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_HSK3_HSK4_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 3 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LE_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_LUYENDEIELTS_90NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề IELTS 90 ngày","loai":"IELTS","days":90},{"ma":"DVĐT_TOEIC_LR_NENTANG_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Trung cấp đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_HSK4_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK 4","loai":"HSK","days":30},{"ma":"DVĐT_HSK1_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 1 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_LUYENDETOEIC_90NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề TOEIC 90 ngày","loai":"TOEIC","days":90},{"ma":"DVĐT_TOEIC_4KN_NENTANG_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_NENTANG_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Nền tảng","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_COBAN_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Cơ bản đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_GT_TIENGANH_SOCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Chuyên sâu (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_HSK1_HSK4_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 1 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_NENTANG_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK_NHAPMON_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Nhập môn Tiếng Trung","loai":"HSK","days":30},{"ma":"DVĐT_LUYENDEIELTS_365NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề IELTS 365 ngày","loai":"IELTS","days":365},{"ma":"DVĐT_LUYENDETOEIC_45NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề TOEIC 45 ngày","loai":"TOEIC","days":45},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Nền tảng","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_HSK2_HSK3_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 2 đến 3","loai":"HSK","days":30},{"ma":"DVĐT_HSK3_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK 3","loai":"HSK","days":30},{"ma":"DVĐT_HSK4_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 4 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_HSK3","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK 3","loai":"HSK","days":30},{"ma":"DVĐT_HSK6_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Học HSK6","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_SOCAP_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Tiếng anh giao tiếp từ Sơ cấp đến Trung cấp (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_HSK2_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK 2","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_COBAN_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Cơ bản đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_HSK1_HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 1 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_(HSK1_HSK4_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK từ 1 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_GT_TIENGANH_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Trung cấp (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_LUYENDEIELTS_180NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề IELTS 180 ngày","loai":"IELTS","days":180},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_(HSK1_HSK3)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (HSK từ 1 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_NENTANG_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_TIENGANH_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Trung cấp đến Chuyên sâu (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK2_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 2 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_NENTANG_COBAN_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Cơ bản","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_KH_HSK1_HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (HSK từ 1 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_KH_HSK1_HSK3","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep -Khóa học (HSK từ 1 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_(NENTANG_COBAN_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Cơ bản (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng anh trực tuyến IELTS Trung cấp (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_HSK3_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 3 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_KH_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK 5","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_TIENG ANH_SOCAP_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Trung cấp (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_(HSK1_HSK5_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học ((AS 6M) HSK từ 1 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(4KN_NENTANG_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_((HSK1_HSK3_AS6M))","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học ((AS 6M) HSK từ 1 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_(LUYENDEIELTS_180NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 180 ngày)","loai":"IELTS","days":180},{"ma":"DVĐT_TOEIC_(LR_NENTANG_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Nền tảng đến Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_NHAPMON_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học ((AS 6M) Nhập môn Tiếng Trung)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(LR_NENTANG)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading Nền tảng)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(4KN_NENTANG)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng Nền tảng)","loai":"TOEIC","days":30},{"ma":"DVĐT_(HSK3_HSK4)_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học ((AS 6M) HSK từ 3 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_(TRUNGCAP_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Trung cấp đến Chuyên sâu (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(NENTANG_COBAN)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Cơ bản)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(COBAN_TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Cơ bản đến Trung cấp)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_(TRUNGCAP_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_(HSK1_HSK3_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK từ 1 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Nền tảng đến Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_(CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS Chuyên sâu (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_(NHAPMON_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) Nhập môn Tiếng Trung)","loai":"HSK","days":30},{"ma":"DVĐT_(LUYENDEIELTS_365NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 365 ngày)","loai":"IELTS","days":365},{"ma":"DVĐT_IELTS_(COBAN_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Cơ bản đến Trung cấp (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_(LUYENDEIELTS_90NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 90 ngày)","loai":"IELTS","days":90},{"ma":"DVĐT_TOEIC_(4KN_NENTANG_TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_(NENTANG_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Chuyên sâu (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(NENTANG_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Trung cấp (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(COBAN_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Cơ bản đến Chuyên sâu (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_(TRUNGCAP_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Trung cấp đến Chuyên sâu)","loai":"IELTS","days":30},{"ma":"DVĐT_(HSK2_HSK4)_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK từ 2 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK1_HSK4)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (HSK từ 1 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(LR_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(4KN_NENTANG_CHUYENSAU)_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng từ Nền tảng đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_(LUYENDETOEIC_90NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC 90 ngày)","loai":"TOEIC","days":90},{"ma":"DVĐT_(HSK4_HSK5)_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK từ 4 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK1_HSK3)_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến (AS 6M) HSK từ 1 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK 5)","loai":"HSK","days":30},{"ma":"DVĐT_GT_TIENGANH_SOCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp Sơ cấp (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_NHAPMON","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến Nhập môn Tiếng Trung)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK2_HSK3_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học tiếng Trung trực tuyến (AS 6M) HSK từ 2 đến 3)","loai":"HSK","days":30},{"ma":"DVĐT_(KH_HSK1_HSK4)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến HSK từ 1 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK3_HSK4_AS6M)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep ((AS 6M) HSK từ 3 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_(NENTANG_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_TIENG ANH_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp từ Trung cấp đến Chuyên sâu (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_LR_(NENTANG_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(LR_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK4_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng Trung trực tuyến HSK từ 4 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_GT_TIENGANH_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp Chuyên sâu (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_GT_TIENGANH_(SOCAP_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Chuyên sâu (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_(LR_TRUNGCAP_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_COBAN_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS Cơ bản (PRO))","loai":"IELTS","days":30},{"ma":"DVĐT_(LUYENDETOEIC_45NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC - 45 ngày)","loai":"TOEIC","days":45},{"ma":"DVĐT_KH_(HSK1_HSK3)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học tiếng Trung trực tuyến từ HSK 1 đến HSK 3)","loai":"HSK","days":30},{"ma":"DVĐT_HSK1-HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến Từ 0 đến HSK 4)","loai":"HSK","days":30},{"ma":"DVĐT_HSK2-4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng Trung trực tuyến HSK từ 2 đến 4)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(LR_TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading Trung cấp)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(4KN_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng Trung cấp (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_(NENTANG_TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Trung cấp)","loai":"IELTS","days":30},{"ma":"DVĐT_LUYENDETOEIC-90NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC - 90 ngày)","loai":"TOEIC","days":90},{"ma":"DVĐT_(LUYENDEIELTS_30NGAY)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 30 ngày)","loai":"IELTS","days":30},{"ma":"DVĐT_(LUYENDETOEIC_30NGAY)","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC 30 ngày)","loai":"TOEIC","days":30},{"ma":"DVĐT_(HSK3)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến HSK 3)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK1_HSK5)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng Trung trực tuyến HSK từ 1 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK5)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến HSK 5)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK2_HSK4)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến Từ HSK 2 đến HSK 4)","loai":"HSK","days":30},{"ma":"DVĐT_HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến HSK 4)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(4KN_NENTANG_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng Nền tảng (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_NENTANG_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Chuyên sâu)","loai":"IELTS","days":30},{"ma":"DVĐT_(HSK3_HSK5)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng Trung trực tuyến HSK từ 3 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_HSK1","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến HSK 1)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_SW_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_(CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_(COBAN_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS từ Cơ bản đến Chuyên sâu)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK6","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng Trung trực tuyến (AS) Học HSK6)","loai":"HSK","days":30},{"ma":"DVĐT_2TOEIC_4KN_NENTANG_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC TOEIC 4 kỹ năng từ Nền tảng đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_(IELTS_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS Chuyên sâu)","loai":"IELTS","days":30},{"ma":"DVĐT_GT_TIENGANH_SOCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp Sơ cấp trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_4KN_(TRUNGCAP_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng từ Trung cấp đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK2_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học tiếng Trung trực tuyến HSK từ 2 đến 5)","loai":"HSK","days":30},{"ma":"DVĐT_(HSK6)_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng Trung trực tuyến (AS 6M) Học HSK6)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_(LR_NENTANG_TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading từ Nền tảng đến Trung cấp)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(4KN_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC 4 kỹ năng Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_(LR_NENTANG_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TTOEIC Listening - Reading từ Nền tảng đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR300_SW100-200","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyếnTOEIC LR 300 đến 600 & SW 100 đến 200)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_(TIENGANH_TRUNGCAP_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khóa học Tiếng anh giao tiếp Trung cấp (PRO) trực tuyến)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_MATGOC_4.0","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến IELTS Mất Gốc đến 4.0)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_(LR_CHUYENSAU)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Listening - Reading Chuyên sâu)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Nền tảng đến Trung cấp)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_(NENTANG_CHUYENSAU_PRO)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu (PRO))","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_COBAN_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Cơ bản đến Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_SW_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_SOCAP_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Tiếng anh giao tiếp từ Sơ cấp đến Chuyên sâu (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_IELTS_NENTANG_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Nền tảng đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_HSK3_HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 3 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_HSK_NHAPMON","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Nhập môn Tiếng Trung","loai":"HSK","days":30},{"ma":"DVĐT_HSK_AS","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS) Học HSK6","loai":"HSK","days":30},{"ma":"DVĐT_HSK1_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 1 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_COBAN_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Cơ bản đến Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Nền tảng","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK3_HSK5_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK từ 3 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"IELTS_NENTANG_CHUYENSAU_PRO","ten":"Khoá học Tiếng Anh trực tuyến IELTS từ Nền tảng đến Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"IELTS_COBAN_TRUNGCAP_PRO","ten":"Khoá học Tiếng Anh trực tuyến IELTS từ Cơ bản đến Trung cấp (PRO)","loai":"IELTS","days":30},{"ma":"IELTS_CHUYENSAU_PRO","ten":"Khoá học Tiếng Anh trực tuyến IELTS Chuyên sâu (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_COBAN","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Cơ bản","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_CHUYENSAU_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_(HSK3_HSK4)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Trung trực tuyến Từ HSK 3 đến HSK 4)","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_TRUNGCAP_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS từ Trung cấp đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Listening - Reading Nền tảng (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_CHUYENSAU_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Chuyên sâu (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_LR_NENTANG_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Nền tảng","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_GT_TRUNGCAP_CHUYENSAU_AS6M_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Tiếng anh giao tiếp từ Trung cấp đến Chuyên sâu (PRO)","loai":"Preptalk","days":30},{"ma":"DVĐT_IELTS_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_LUYENDETOEIC_180NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề TOEIC 180 ngày","loai":"TOEIC","days":180},{"ma":"DVĐT_TT_LUYENDETOEIC_90NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC - 90 ngày","loai":"TOEIC","days":90},{"ma":"DVĐT_IELTS_COBAN_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Cơ bản đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Nền tảng","loai":"IELTS","days":30},{"ma":"DVĐT_LUYENDETOEIC_30NGAY","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khoá học Tiếng Anh trực tuyến Gói luyện đề TOEIC 30 ngày","loai":"TOEIC","days":30},{"ma":"DVĐT_LUYENDEIELTS_30NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 30 ngày","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_COBAN","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Cơ bản","loai":"IELTS","days":30},{"ma":"DVĐT_HSK2","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK 2","loai":"HSK","days":30},{"ma":"DVĐT_GT_SOCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Chuyên sâu","loai":"Preptalk","days":30},{"ma":"DVĐT_GT_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Trung cấp","loai":"Preptalk","days":30},{"ma":"DVĐT_GT_SOCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Sơ cấp","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing Nền tảng","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK2_HSK4","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 2 đến 4","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_4KN_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK 5","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_MATGOC_4.0_PRO","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Mất Gốc đến 4.0 (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK1_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) HSK 1","loai":"HSK","days":30},{"ma":"DVĐT_IELTS_COBAN_(PRO)","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Cơ bản (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_LR_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Listening - Reading Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_JUNIOR1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Junior 1","loai":"IELTS","days":30},{"ma":"DVĐT_PREIELTS_JUNIOR1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Pre IELTS đến IELTS Junior 1","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_CHUYENSAU_(PRO)","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_CHUYENSAU_(PRO)","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP-CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_TRUNGCAP_(PRO)","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Nền tảng đến Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_VSTEP_B2_C2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP từ Tăng tốc (B2) đến Về đích (C1)","loai":"VSTEP","days":30},{"ma":"DVĐT_VSTEP_B2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP Tăng tốc (B2)","loai":"VSTEP","days":30},{"ma":"DVĐT_VSTEP_C1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP Về đích (C1)","loai":"VSTEP","days":30},{"ma":"DVĐT_IELTS_NENTANG-CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng đến Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_TRUNGCAP_(AS6M)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP_CHUYENSAU(AS6M)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC 4 kỹ năng từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_CHUYENSAU_PRO_(AS6M)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_COBAN_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Cơ bản (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_GT_V2_6THANG","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến: Tiếng Anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề giao tiếp phòng ảo 6 tháng V2","loai":"Preptalk","days":180},{"ma":"DVĐT_HSK_HSK1","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK 1","loai":"HSK","days":30},{"ma":"DVĐT_VSTEP_B1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP Khởi động (B1)","loai":"VSTEP","days":30},{"ma":"DVĐT_VSTEP_B1_B2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP từ Khởi động (B1) đến Tăng tốc (B2)","loai":"VSTEP","days":30},{"ma":"DVĐT_VSTEP_B1_C1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi VSTEP trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học VSTEP từ Khởi động (B1) đến Về đích (C1)","loai":"VSTEP","days":30},{"ma":"DVĐT_IELTS_JUNIOR1_2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Junior từ 1 đến 2","loai":"IELTS","days":30},{"ma":"DVĐT_4KN_TRUNGCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng từ Trung cấp đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_PREIELTS_JUNIOR2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Pre IELTS đến IELTS Junior 2","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_SOCAP_TRUNGCAP_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Sơ cấp đến Trung cấp","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_PRO_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Nền Tảng (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC-SW_NENTANG_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Nền tảng đến Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC-SW_NENTANG_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing từ Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_JUNIOR2","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Junior 2","loai":"IELTS","days":30},{"ma":"DVĐT_GIAOTIEP_TRUNGCAP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp từ Trung cấp đến Chuyên sâu","loai":"Preptalk","days":30},{"ma":"DVĐT_THCS_IELTS_JUNIOR1-2_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Junior từ 1 đến 2","loai":"IELTS","days":30},{"ma":"DVĐT_HSK_HSK4_HSK5","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 4 đến 5","loai":"HSK","days":30},{"ma":"DVĐT_GIAOTIEP_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng anh giao tiếp trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Tiếng anh giao tiếp Chuyên sâu","loai":"Preptalk","days":30},{"ma":"DVĐT_TOEIC-SW_TRUNGCAP_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing Trung cấp (PRO)","loai":"TOEIC","days":30},{"ma":"DVĐT_THCS_IELTS_PRE_JUNIOR2_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Pre IELTS đến IELTS JUNIOR 2","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4 kỹ năng Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_MATGOC-4.0","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Mất Gốc đến 4.0","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_PRE_JUNIOR1","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Pre IELTS đến IELTS JUNIOR 1","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_LUYENDE_30NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề IELTS 30 ngày","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_LUYENDE_60NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề IELTS 60 ngày","loai":"IELTS","days":60},{"ma":"DVĐT_TOEIC_LUYENDE_30NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Gói luyện đề TOEIC 30 ngày","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC Speaking - Writing Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_TOEIC_SW_TRUNGCAP_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing Trung cấp","loai":"TOEIC","days":30},{"ma":"DVĐT_THCS_IELTS_JUNIOR1_AS6M","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS JUNIOR 1","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_NENTANG_PRO","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS từ Nền tảng (PRO)","loai":"IELTS","days":30},{"ma":"DVĐT_HSK2_HSK3","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK từ 2 đến 3","loai":"HSK","days":30},{"ma":"DVĐT_(HSK4)","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học HSK 4","loai":"HSK","days":30},{"ma":"DVĐT_THCS_AS6M_PREIELTS","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) Pre IELTS","loai":"IELTS","days":30},{"ma":"DVĐT_HSK_3.0_AS6M","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - (AS 6M) HSK 1 - Khóa học Nền tảng tiếng Trung HSK 3.0","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_SW_(TRUNGCAP)","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep (Khoá học Tiếng Anh trực tuyến TOEIC Speaking - Writing Trung cấp)","loai":"TOEIC","days":30},{"ma":"DVĐT_HSK1_HSK3.0","ten":"Dịch vụ đào tạo trực tuyến kỳ thi HSK trên nền tảng Ứng dụng luyện thi trực tuyến Prep - HSK 1 - Khóa học Nền tảng tiếng Trung HSK 3.0","loai":"HSK","days":30},{"ma":"DVĐT_TOEIC_SW_NENTANG_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) TOEIC Speaking - Writing Nền tảng","loai":"TOEIC","days":30},{"ma":"HT_BAITAP_IELTS_3T","ten":"Hệ thống bài luyện tập cho bài thi ngoại ngữ quốc tế IELTS 3 tháng","loai":"IELTS","days":90},{"ma":"4 kĩ năng plus","ten":"Khóa học Tiếng Anh chuyên sâu IELTS trên website Prep.vn (Khóa IELTS chuyên sâu 4 kĩ năng plus)","loai":"IELTS","days":30},{"ma":"DVĐT_TOEIC_4KN_NENTANG_CHUYENSAU","ten":"Dịch vụ đào tạo tiếng anh trực tuyến kỳ thi TOEIC trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học TOEIC 4KN Nền tảng đến Chuyên sâu","loai":"TOEIC","days":30},{"ma":"DVĐT_IELTS_CHUYENSAU_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Chuyên sâu","loai":"IELTS","days":30},{"ma":"DVĐT_PRE_IELTS_THCS","ten":"Dịch vụ đào tạo tiếng anh trực tuyến: Tiếng Anh học thuật THCS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học Pre IELTS THCS","loai":"IELTS","days":30},{"ma":"LUYENDE IELTS_365NGAY","ten":"Khoá học Tiếng Anh trực tuyến Gói luyện đề IELTS - 365 ngày","loai":"IELTS","days":365},{"ma":"DVĐT_IELTS_NENTANG_CHUYENSAU_30NGAY","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học IELTS Nền tảng đến Chuyên sâu 30 ngày","loai":"IELTS","days":30},{"ma":"DVĐT_IELTS_COBAN_AS6M","ten":"Dịch vụ đào tạo tiếng Anh trực tuyến kỳ thi IELTS trên nền tảng Ứng dụng luyện thi trực tuyến Prep - Khóa học (AS 6M) IELTS Cơ bản","loai":"IELTS","days":30}]</script>
+
+<script>
+// ============================================================
+// LOGIC TOOL CHECK PHÂN BỔ DOANH THU
+// ============================================================
+
+const APP = {
+  files: [null, null],          // {name, type:'mei'|'misa', data:[], headerRow}
+  rules: [],
+  defaultRules: [],
+  resultsData: null,
+  exclusionRules: null,         // Loại trừ HĐ chưa phân bổ
+};
+
+// Default exclusion rules for HĐ chưa phân bổ
+const DEFAULT_EXCLUSION = {
+  excludeReplacedStatus: true,  // Loại HĐ "đã bị thay thế"
+  patterns: [
+    { keyword: 'LỆ PHÍ THI', desc: 'Lệ phí thi (1 lần, không phân bổ)' },
+    { keyword: 'Hàng quà tặng', desc: 'Quà tặng / khuyến mại' },
+    { keyword: 'không thu tiền', desc: 'Không thu tiền (quà tặng)' },
+    { keyword: 'Chi phí dịch vụ quảng cáo', desc: 'Chi phí quảng cáo Google/YouTube' },
+    { keyword: 'Phí sử dụng nền tảng', desc: 'Phí nền tảng (1 lần)' },
+    { keyword: 'Bài kiểm tra khóa học', desc: 'Phí kiểm tra (Exam Platform)' },
+    { keyword: 'Thanh lý Tài sản', desc: 'Thanh lý TSCĐ' },
+  ],
+};
+
+const EXCLUSION_STORAGE_KEY = 'check_phan_bo_dt_exclusion_v1';
+
+// Load default rules from embedded JSON
+try {
+  APP.defaultRules = JSON.parse(document.getElementById('defaultRulesJSON').textContent);
+} catch(e) {
+  console.error('Cannot load default rules', e);
+  APP.defaultRules = [];
+}
+
+// ---------- UTILS ----------
+function $(id) { return document.getElementById(id); }
+function fmt(n) {
+  if (n === null || n === undefined || n === '') return '';
+  if (typeof n !== 'number') n = Number(n);
+  if (isNaN(n)) return '';
+  return n.toLocaleString('vi-VN', { maximumFractionDigits: 0 });
+}
+function stripLeadingZeros(s) {
+  if (s === null || s === undefined) return '';
+  s = String(s).trim();
+  return s.replace(/^0+/, '') || s;
+}
+function normStr(s) {
+  return (s ?? '').toString().trim();
+}
+function showToast(msg, type='') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+function excelDateToJS(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'number') {
+    // Excel serial date
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d) return new Date(Date.UTC(d.y, d.m-1, d.d));
+    return null;
+  }
+  if (typeof v === 'string') {
+    // Try DD/MM/YYYY
+    let m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if (m) {
+      let y = parseInt(m[3]);
+      if (y < 100) y += 2000;
+      return new Date(Date.UTC(y, parseInt(m[2])-1, parseInt(m[1])));
+    }
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+function formatDate(d) {
+  if (!d) return '';
+  if (!(d instanceof Date)) d = excelDateToJS(d);
+  if (!d || isNaN(d.getTime())) return '';
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yy = d.getUTCFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+function dayKey(d) {
+  if (!d) return '';
+  if (!(d instanceof Date)) d = excelDateToJS(d);
+  if (!d || isNaN(d.getTime())) return '';
+  return d.getUTCFullYear() + '-' + (d.getUTCMonth()+1) + '-' + d.getUTCDate();
+}
+
+// ============================================================
+// RULE MANAGEMENT
+// ============================================================
+const STORAGE_KEY = 'check_phan_bo_dt_rules_v1';
+
+function loadExclusion() {
+  try {
+    const stored = localStorage.getItem(EXCLUSION_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && Array.isArray(parsed.patterns)) {
+        APP.exclusionRules = parsed;
+        return;
+      }
+    }
+  } catch(e) { console.warn('Load exclusion failed', e); }
+  APP.exclusionRules = JSON.parse(JSON.stringify(DEFAULT_EXCLUSION));
+}
+
+function saveExclusion() {
+  try {
+    localStorage.setItem(EXCLUSION_STORAGE_KEY, JSON.stringify(APP.exclusionRules));
+  } catch(e) {}
+}
+
+function isHDExcluded(meiRow) {
+  if (!APP.exclusionRules) return { excluded: false };
+  const status = normStr(meiRow['Trạng thái hóa đơn']).toLowerCase();
+  if (APP.exclusionRules.excludeReplacedStatus &&
+      (status.includes('đã bị thay thế') || status.includes('da bi thay the'))) {
+    return { excluded: true, reason: 'Trạng thái: đã bị thay thế' };
+  }
+  // Normalize whitespace (collapse multiple spaces, trim)
+  const tenHang = normStr(meiRow['Tên hàng']).toLowerCase().replace(/\s+/g, ' ');
+  for (const p of APP.exclusionRules.patterns) {
+    if (!p.keyword) continue;
+    const kw = p.keyword.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (kw && tenHang.includes(kw)) {
+      return { excluded: true, reason: p.desc || `Khớp pattern: "${p.keyword}"` };
+    }
+  }
+  return { excluded: false };
+}
+
+function loadRules() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        APP.rules = parsed;
+        // Auto-merge: thêm các mã default mới chưa có vào rule (không động đến mã user đã sửa)
+        const storedMa = new Set(parsed.map(r => normStr(r.ma)));
+        const newRules = APP.defaultRules.filter(r => !storedMa.has(normStr(r.ma)));
+        if (newRules.length > 0) {
+          newRules.forEach(r => APP.rules.push({...r}));
+          // Save back
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(APP.rules)); } catch(e) {}
+          APP._autoMergedCount = newRules.length;
+        }
+        return;
+      }
+    }
+  } catch(e) { console.warn('Load rules failed', e); }
+  // Fallback to default
+  APP.rules = APP.defaultRules.map(r => ({...r}));
+}
+
+function saveRules() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(APP.rules));
+  } catch(e) {
+    showToast('Lưu rule thất bại: ' + e.message, 'error');
+  }
+}
+
+function isModifiedFromDefault() {
+  if (APP.rules.length !== APP.defaultRules.length) return true;
+  const defMap = {};
+  APP.defaultRules.forEach(r => defMap[r.ma] = r.days);
+  for (const r of APP.rules) {
+    if (defMap[r.ma] !== r.days) return true;
+  }
+  return false;
+}
+
+function renderRuleSummary() {
+  $('ruleCount').textContent = APP.rules.length;
+  const chip = $('ruleStatusChip');
+  if (isModifiedFromDefault()) {
+    chip.innerHTML = 'Trạng thái: <strong style="color:#92400e">Đã chỉnh sửa</strong>';
+  } else {
+    chip.innerHTML = 'Trạng thái: <strong style="color:#047857">Mặc định</strong>';
+  }
+}
+
+function renderRuleTable(filterText='') {
+  const tbody = $('ruleTableBody');
+  const f = filterText.toLowerCase().trim();
+  const rows = APP.rules.filter(r => {
+    if (!f) return true;
+    return (r.ma||'').toLowerCase().includes(f) ||
+           (r.ten||'').toLowerCase().includes(f) ||
+           (r.loai||'').toLowerCase().includes(f);
+  });
+  tbody.innerHTML = rows.map((r, i) => {
+    const idx = APP.rules.indexOf(r);
+    return `
+      <tr data-idx="${idx}">
+        <td><input type="text" data-field="ma" value="${escapeHTML(r.ma)}" /></td>
+        <td><input type="text" data-field="ten" value="${escapeHTML(r.ten||'')}" /></td>
+        <td><input type="text" data-field="loai" value="${escapeHTML(r.loai||'')}" /></td>
+        <td><input type="number" data-field="days" value="${r.days}" min="1" /></td>
+        <td><button class="rule-delete-btn" data-del="${idx}" title="Xóa">×</button></td>
+      </tr>`;
+  }).join('');
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function bindRuleTable() {
+  const tbody = $('ruleTableBody');
+  tbody.addEventListener('input', (e) => {
+    const t = e.target;
+    const tr = t.closest('tr');
+    if (!tr) return;
+    const idx = parseInt(tr.dataset.idx);
+    const field = t.dataset.field;
+    if (idx >= 0 && field) {
+      if (field === 'days') {
+        APP.rules[idx][field] = parseInt(t.value) || 0;
+      } else {
+        APP.rules[idx][field] = t.value;
+      }
+      saveRules();
+      renderRuleSummary();
+    }
+  });
+  tbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-del]');
+    if (btn) {
+      const idx = parseInt(btn.dataset.del);
+      if (confirm('Xóa mã ' + APP.rules[idx].ma + '?')) {
+        APP.rules.splice(idx, 1);
+        saveRules();
+        renderRuleSummary();
+        renderRuleTable($('ruleSearchInput').value);
+        showToast('Đã xóa mã.');
+      }
+    }
+  });
+}
+
+// ============================================================
+// FILE DETECTION
+// ============================================================
+const MEI_HEADER_KEYS = ['Số hóa đơn', 'Ngày hóa đơn', 'Tên hàng', 'Tổng tiền thanh toán'];
+const MISA_HEADER_KEYS = ['Số chứng từ', 'Ngày chứng từ', 'Mã hàng', 'Số ngày PB', 'Doanh thu PB'];
+
+function detectFileType(workbook) {
+  for (const sheetName of workbook.SheetNames) {
+    const ws = workbook.Sheets[sheetName];
+    if (!ws['!ref']) continue;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    // Scan first 15 rows for header row
+    const maxRow = Math.min(range.e.r, 15);
+    for (let r = range.s.r; r <= maxRow; r++) {
+      const rowVals = [];
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({r, c})];
+        if (cell && cell.v != null) rowVals.push(String(cell.v).trim());
+      }
+      if (rowVals.length < 4) continue;
+      const rowSet = new Set(rowVals.map(v => v.toLowerCase()));
+      const meiMatch = MEI_HEADER_KEYS.filter(k => rowSet.has(k.toLowerCase())).length;
+      const misaMatch = MISA_HEADER_KEYS.filter(k => rowSet.has(k.toLowerCase())).length;
+      if (meiMatch >= 3) {
+        return { type: 'mei', sheet: sheetName, headerRow: r };
+      }
+      if (misaMatch >= 4) {
+        return { type: 'misa', sheet: sheetName, headerRow: r };
+      }
+    }
+  }
+  return { type: 'unknown' };
+}
+
+function parseSheet(workbook, sheetName, headerRow) {
+  const ws = workbook.Sheets[sheetName];
+  // Use range starting from headerRow
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  range.s.r = headerRow;
+  ws['!ref'] = XLSX.utils.encode_range(range);
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
+  return rows;
+}
+
+// ============================================================
+// FILE UPLOAD HANDLERS (single multi-file zone)
+// ============================================================
+function setupUploadZone() {
+  const box = $('uploadBox');
+  const input = $('fileInput');
+
+  ['dragenter','dragover'].forEach(ev =>
+    box.addEventListener(ev, e => { e.preventDefault(); box.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev =>
+    box.addEventListener(ev, e => { e.preventDefault(); box.classList.remove('dragover'); }));
+
+  box.addEventListener('drop', async e => {
+    if (e.dataTransfer.files.length) {
+      await processFiles(Array.from(e.dataTransfer.files));
+    }
+  });
+  input.addEventListener('change', async e => {
+    if (e.target.files.length) {
+      await processFiles(Array.from(e.target.files));
+      e.target.value = ''; // allow re-upload same file
+    }
+  });
+}
+
+async function processFiles(files) {
+  for (const file of files) {
+    await handleFile(file);
+  }
+  renderFilesDetected();
+  updateRunButton();
+}
+
+async function handleFile(file) {
+  // Read and detect first
+  let detection = null, parsedData = null, errMsg = null;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: false });
+    detection = detectFileType(wb);
+    if (detection.type === 'unknown') {
+      errMsg = 'Không nhận diện được. File phải là Bảng kê Meinvoice hoặc Báo cáo Misa Phân bổ DT.';
+    } else {
+      const data = parseSheet(wb, detection.sheet, detection.headerRow);
+      if (detection.type === 'mei') {
+        parsedData = data.filter(r => r['Số hóa đơn'] != null && r['Số hóa đơn'] !== '');
+      } else {
+        // Misa: skip footer "Tổng cộng" / Total rows (Số chứng từ có nhưng Mã hàng + Số ngày PB trống)
+        parsedData = data.filter(r => {
+          const soCT = r['Số chứng từ'];
+          if (soCT == null || soCT === '') return false;
+          const ma = r['Mã hàng'];
+          const ngay = r['Số ngày PB'];
+          // Dòng dữ liệu thật phải có Mã hàng hoặc Số ngày PB
+          if ((ma == null || ma === '') && (ngay == null || ngay === '')) return false;
+          // Skip rows like "Tổng cộng", "Total", "Cộng"
+          const sct = String(soCT).toLowerCase().trim();
+          if (sct === 'tổng cộng' || sct === 'tong cong' || sct === 'total' || sct === 'cộng' || sct === 'cong') return false;
+          return true;
+        });
+      }
+    }
+  } catch(err) {
+    errMsg = 'Lỗi đọc file: ' + err.message;
+  }
+
+  if (errMsg || !detection || detection.type === 'unknown') {
+    APP.uploadEvents = APP.uploadEvents || [];
+    APP.uploadEvents.push({
+      name: file.name,
+      type: 'error',
+      error: errMsg || 'Không nhận diện được cấu trúc file',
+    });
+    return;
+  }
+
+  // Determine slot based on type
+  const slot = detection.type === 'mei' ? 0 : 1;
+
+  // If slot already has a file of this type, replace and notify
+  if (APP.files[slot]) {
+    showToast(`Đã thay file ${detection.type === 'mei' ? 'Meinvoice' : 'Misa'} cũ.`);
+  }
+
+  APP.files[slot] = {
+    name: file.name,
+    type: detection.type,
+    data: parsedData,
+    sheet: detection.sheet,
+    headerRow: detection.headerRow,
+  };
+}
+
+function renderFilesDetected() {
+  const wrap = $('filesDetected');
+  const cards = [];
+
+  // Slot 0: Mei, Slot 1: Misa - render in a fixed order
+  const slots = [
+    { idx: 0, label: 'Bảng kê Meinvoice', short: 'MEI' },
+    { idx: 1, label: 'Báo cáo Misa Phân bổ DT', short: 'MISA' },
+  ];
+
+  slots.forEach(s => {
+    const f = APP.files[s.idx];
+    if (f) {
+      cards.push(`
+        <div class="file-card success">
+          <div class="file-card-icon">${s.short}</div>
+          <div class="file-card-body">
+            <div class="file-card-type">${s.label}</div>
+            <div class="file-card-name">${escapeHTML(f.name)}</div>
+            <div class="file-card-meta">${f.data.length.toLocaleString('vi-VN')} dòng dữ liệu · sheet: ${escapeHTML(f.sheet)}</div>
+          </div>
+          <button class="file-card-remove" data-remove-slot="${s.idx}" title="Xóa">×</button>
+        </div>
+      `);
+    } else {
+      cards.push(`
+        <div class="file-card" style="opacity:0.55; border-style:dashed;">
+          <div class="file-card-icon" style="background:var(--bg);color:var(--muted);">${s.short}</div>
+          <div class="file-card-body">
+            <div class="file-card-type" style="color:var(--muted)">${s.label}</div>
+            <div class="file-card-meta">Chưa có file</div>
+          </div>
+        </div>
+      `);
+    }
+  });
+
+  // Errors from upload
+  if (APP.uploadEvents && APP.uploadEvents.length > 0) {
+    APP.uploadEvents.forEach((e, i) => {
+      cards.push(`
+        <div class="file-card error" style="grid-column: 1 / -1;">
+          <div class="file-card-icon">!</div>
+          <div class="file-card-body">
+            <div class="file-card-type">Không xử lý được</div>
+            <div class="file-card-name">${escapeHTML(e.name)}</div>
+            <div class="file-card-meta">${escapeHTML(e.error)}</div>
+          </div>
+          <button class="file-card-remove" data-dismiss="${i}" title="Bỏ qua">×</button>
+        </div>
+      `);
+    });
+  }
+
+  wrap.innerHTML = cards.join('');
+
+  // Bind remove buttons
+  wrap.querySelectorAll('[data-remove-slot]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const slot = parseInt(btn.dataset.removeSlot);
+      APP.files[slot] = null;
+      renderFilesDetected();
+      updateRunButton();
+    });
+  });
+  wrap.querySelectorAll('[data-dismiss]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const i = parseInt(btn.dataset.dismiss);
+      APP.uploadEvents.splice(i, 1);
+      renderFilesDetected();
+    });
+  });
+}
+
+function updateRunButton() {
+  const btn = $('btnRun');
+  const desc = $('runSectionDesc');
+  const hasMei = APP.files.some(f => f && f.type === 'mei');
+  const hasMisa = APP.files.some(f => f && f.type === 'misa');
+  if (hasMei && hasMisa) {
+    btn.disabled = false;
+    desc.textContent = 'Đã có đủ 2 file. Bấm nút bên dưới để bắt đầu đối chiếu.';
+  } else {
+    btn.disabled = true;
+    const need = [];
+    if (!hasMei) need.push('Bảng kê Meinvoice');
+    if (!hasMisa) need.push('Báo cáo Misa Phân bổ DT');
+    desc.textContent = 'Còn thiếu: ' + need.join(' và ') + '.';
+  }
+}
+
+// ============================================================
+// PROCESSING LOGIC
+// ============================================================
+const TOLERANCE_DAYS = 3;
+const TOLERANCE_AMOUNT = 1; // 1 đồng
+
+// Find best matching Mei row for a given Misa row when multiple Mei rows share same Số HĐ
+function findBestMeiMatch(misaRow, meiCandidates, alreadyMatched) {
+  if (meiCandidates.length === 0) return null;
+  const available = meiCandidates.filter(r => !alreadyMatched.has(r));
+  if (available.length === 0) return null;
+  if (available.length === 1) return available[0];
+
+  const ma = normStr(misaRow['Mã hàng']);
+  const ten = normStr(misaRow['Tên hàng']);
+  const dt = Number(misaRow['Doanh thu PB']) || 0;
+
+  // Strategy 1: exact match by Mã SP (only when Mei has Mã SP)
+  if (ma) {
+    const byMa = available.filter(r => normStr(r['Mã hàng']) === ma);
+    if (byMa.length === 1) return byMa[0];
+    if (byMa.length > 1) {
+      // Multiple same Mã - prefer closest amount
+      byMa.sort((a,b) =>
+        Math.abs((Number(a['Tổng tiền thanh toán'])||0) - dt) -
+        Math.abs((Number(b['Tổng tiền thanh toán'])||0) - dt));
+      return byMa[0];
+    }
+  }
+
+  // Strategy 2: exact amount match
+  const byAmount = available.filter(r =>
+    Math.abs((Number(r['Tổng tiền thanh toán'])||0) - dt) <= TOLERANCE_AMOUNT);
+  if (byAmount.length === 1) return byAmount[0];
+  if (byAmount.length > 1) {
+    // Disambiguate by name if possible
+    if (ten) {
+      const byName = byAmount.filter(r => {
+        const t = normStr(r['Tên hàng']).toLowerCase();
+        const tt = ten.toLowerCase();
+        return t && tt && (t.includes(tt.slice(0, 25)) || tt.includes(t.slice(0, 25)));
+      });
+      if (byName.length === 1) return byName[0];
+    }
+    return byAmount[0];
+  }
+
+  // Strategy 3: name substring match (fallback)
+  if (ten) {
+    const byName = available.filter(r => {
+      const t = normStr(r['Tên hàng']).toLowerCase();
+      const tt = ten.toLowerCase();
+      return t && tt && (t.includes(tt.slice(0, 25)) || tt.includes(t.slice(0, 25)));
+    });
+    if (byName.length === 1) return byName[0];
+    if (byName.length > 1) {
+      byName.sort((a,b) =>
+        Math.abs((Number(a['Tổng tiền thanh toán'])||0) - dt) -
+        Math.abs((Number(b['Tổng tiền thanh toán'])||0) - dt));
+      return byName[0];
+    }
+  }
+
+  // No clear strategy - return null to indicate ambiguous
+  return null;
+}
+
+function runCheck() {
+  const meiFile = APP.files.find(f => f && f.type === 'mei');
+  const misaFile = APP.files.find(f => f && f.type === 'misa');
+  if (!meiFile || !misaFile) return;
+
+  // Build rule map
+  const ruleMap = {};
+  APP.rules.forEach(r => { ruleMap[normStr(r.ma)] = r; });
+
+  // Group Mei by Số HĐ (stripped) and find period range
+  const meiByKey = {};
+  let meiPeriodStart = null;
+  meiFile.data.forEach((r, i) => {
+    const key = stripLeadingZeros(normStr(r['Số hóa đơn']));
+    if (!key) return;
+    if (!meiByKey[key]) meiByKey[key] = [];
+    meiByKey[key].push({...r, _key: key, _idx: i});
+    const d = excelDateToJS(r['Ngày hóa đơn']);
+    if (d && (!meiPeriodStart || d < meiPeriodStart)) meiPeriodStart = d;
+  });
+
+  // Group Misa by Số chứng từ (stripped)
+  const misaByKey = {};
+  misaFile.data.forEach((r, i) => {
+    const key = stripLeadingZeros(normStr(r['Số chứng từ']));
+    if (!key) return;
+    if (!misaByKey[key]) misaByKey[key] = [];
+    misaByKey[key].push({...r, _key: key, _idx: i});
+  });
+
+  // Track which Mei rows have been matched (for multi-line, ensures 1-1 mapping per HĐ)
+  // Match per-key: collect Misa rows for the key, assign Mei candidates greedily
+  const meiMatchedByKey = {}; // key -> Set of matched Mei rows
+  const misaToMatchedMei = new Map(); // misaRow ref -> matchedMei row (or null)
+
+  Object.keys(misaByKey).forEach(key => {
+    const misaRowsK = misaByKey[key];
+    const meiCandidates = meiByKey[key] || [];
+    const matched = new Set();
+
+    // Pass 1: exact Mã SP match takes priority
+    const usedMisa = new Set();
+    misaRowsK.forEach(misaRow => {
+      const ma = normStr(misaRow['Mã hàng']);
+      if (!ma) return;
+      const byMa = meiCandidates.filter(r => !matched.has(r) && normStr(r['Mã hàng']) === ma);
+      if (byMa.length >= 1) {
+        // Pick by closest amount
+        const dt = Number(misaRow['Doanh thu PB']) || 0;
+        byMa.sort((a,b) =>
+          Math.abs((Number(a['Tổng tiền thanh toán'])||0) - dt) -
+          Math.abs((Number(b['Tổng tiền thanh toán'])||0) - dt));
+        misaToMatchedMei.set(misaRow, byMa[0]);
+        matched.add(byMa[0]);
+        usedMisa.add(misaRow);
+      }
+    });
+
+    // Pass 2: amount match for remaining Misa
+    misaRowsK.forEach(misaRow => {
+      if (usedMisa.has(misaRow)) return;
+      const dt = Number(misaRow['Doanh thu PB']) || 0;
+      const byAmt = meiCandidates.filter(r => !matched.has(r) &&
+        Math.abs((Number(r['Tổng tiền thanh toán'])||0) - dt) <= TOLERANCE_AMOUNT);
+      if (byAmt.length === 1) {
+        misaToMatchedMei.set(misaRow, byAmt[0]);
+        matched.add(byAmt[0]);
+        usedMisa.add(misaRow);
+      } else if (byAmt.length > 1) {
+        // Disambiguate by name
+        const ten = normStr(misaRow['Tên hàng']).toLowerCase();
+        const byName = byAmt.filter(r => {
+          const t = normStr(r['Tên hàng']).toLowerCase();
+          return t && ten && (t.includes(ten.slice(0, 25)) || ten.includes(t.slice(0, 25)));
+        });
+        const pick = byName.length === 1 ? byName[0] : byAmt[0];
+        misaToMatchedMei.set(misaRow, pick);
+        matched.add(pick);
+        usedMisa.add(misaRow);
+      }
+    });
+
+    // Pass 3: name-substring match for remaining
+    misaRowsK.forEach(misaRow => {
+      if (usedMisa.has(misaRow)) return;
+      const ten = normStr(misaRow['Tên hàng']).toLowerCase();
+      if (!ten) return;
+      const byName = meiCandidates.filter(r => !matched.has(r) && (() => {
+        const t = normStr(r['Tên hàng']).toLowerCase();
+        return t && (t.includes(ten.slice(0, 25)) || ten.includes(t.slice(0, 25)));
+      })());
+      if (byName.length === 1) {
+        misaToMatchedMei.set(misaRow, byName[0]);
+        matched.add(byName[0]);
+        usedMisa.add(misaRow);
+      }
+    });
+
+    // Pass 4: fallback for the rest (only useful when exactly 1 Misa & 1 Mei left)
+    misaRowsK.forEach(misaRow => {
+      if (usedMisa.has(misaRow)) return;
+      const remaining = meiCandidates.filter(r => !matched.has(r));
+      if (remaining.length === 1 && (misaRowsK.filter(m => !usedMisa.has(m)).length === 1)) {
+        misaToMatchedMei.set(misaRow, remaining[0]);
+        matched.add(remaining[0]);
+        usedMisa.add(misaRow);
+      } else {
+        misaToMatchedMei.set(misaRow, null); // ambiguous
+      }
+    });
+
+    meiMatchedByKey[key] = matched;
+  });
+
+  // ========== CHECK EACH MISA ROW ==========
+  const detail = [];
+  const missingRule = [];
+
+  for (const misaRow of misaFile.data) {
+    const soCT = normStr(misaRow['Số chứng từ']);
+    const key = stripLeadingZeros(soCT);
+    const maHang = normStr(misaRow['Mã hàng']);
+    const dtPB = Number(misaRow['Doanh thu PB']) || 0;
+    const soNgayPB = Number(misaRow['Số ngày PB']) || 0;
+    const ngayBD = excelDateToJS(misaRow['Ngày bắt đầu PB']);
+    const ngayKT = excelDateToJS(misaRow['Ngày kết thúc PB']);
+    const ngayCT = excelDateToJS(misaRow['Ngày chứng từ']);
+
+    const issues = [];
+    const warnings = [];
+
+    // Check rule
+    const rule = ruleMap[maHang];
+    let ruleDays = null;
+    if (!rule) {
+      issues.push('THIẾU RULE');
+      if (!missingRule.find(x => x.ma === maHang)) {
+        missingRule.push({ ma: maHang, ten: normStr(misaRow['Tên hàng']), count: 0, totalDT: 0 });
+      }
+      const mr = missingRule.find(x => x.ma === maHang);
+      mr.count++;
+      mr.totalDT += dtPB;
+    } else {
+      ruleDays = rule.days;
+      const diff = Math.abs(soNgayPB - ruleDays);
+      if (diff > TOLERANCE_DAYS) {
+        issues.push(`SAI KỲ (Misa ${soNgayPB}d, Rule ${ruleDays}d)`);
+      } else if (diff > 0) {
+        warnings.push(`Tolerance ±${diff}d`);
+      }
+    }
+
+    // Determine multi-line status
+    const meiCandidates = meiByKey[key] || [];
+    const misaCount = (misaByKey[key] || []).length;
+    const meiCount = meiCandidates.length;
+    const isMultiLineInvoice = (misaCount > 1 || meiCount > 1);
+
+    let meiThanhTien = null, meiTongTT = null, meiNgayHD = null;
+    let matchedMei = null;
+
+    if (meiCandidates.length > 0) {
+      matchedMei = misaToMatchedMei.get(misaRow);
+
+      if (matchedMei) {
+        // Use this single matched row for amount/date check
+        meiThanhTien = Number(matchedMei['Thành tiền']) || 0;
+        meiTongTT = Number(matchedMei['Tổng tiền thanh toán']) || 0;
+        meiNgayHD = excelDateToJS(matchedMei['Ngày hóa đơn']);
+
+        if (Math.abs(dtPB - meiTongTT) > TOLERANCE_AMOUNT) {
+          issues.push(`SAI TIỀN (Misa ${fmt(dtPB)} ≠ Mei ${fmt(meiTongTT)})`);
+        }
+        if (ngayBD && meiNgayHD && dayKey(ngayBD) !== dayKey(meiNgayHD)) {
+          issues.push(`SAI NGÀY BĐ (${formatDate(ngayBD)} ≠ NgàyHĐ ${formatDate(meiNgayHD)})`);
+        }
+      } else if (isMultiLineInvoice) {
+        // Multi-line but couldn't disambiguate - fallback: compare totals
+        const totalMeiTT = meiCandidates.reduce((s,r) => s + (Number(r['Tổng tiền thanh toán'])||0), 0);
+        const totalMisaPB = misaByKey[key].reduce((s,r) => s + (Number(r['Doanh thu PB'])||0), 0);
+        meiTongTT = totalMeiTT;
+        meiThanhTien = meiCandidates.reduce((s,r) => s + (Number(r['Thành tiền'])||0), 0);
+        meiNgayHD = excelDateToJS(meiCandidates[0]['Ngày hóa đơn']);
+        warnings.push(`HĐ multi-line: chưa map được dòng cụ thể, so theo tổng (${misaCount} Misa / ${meiCount} Mei)`);
+        if (Math.abs(totalMisaPB - totalMeiTT) > TOLERANCE_AMOUNT) {
+          issues.push(`SAI TIỀN (tổng PB ${fmt(totalMisaPB)} ≠ tổng TT ${fmt(totalMeiTT)})`);
+        }
+        if (ngayBD && meiNgayHD && dayKey(ngayBD) !== dayKey(meiNgayHD)) {
+          issues.push(`SAI NGÀY BĐ (${formatDate(ngayBD)} ≠ ${formatDate(meiNgayHD)})`);
+        }
+      } else {
+        // Should not happen if logic is correct - fallback
+        const onlyMei = meiCandidates[0];
+        meiTongTT = Number(onlyMei['Tổng tiền thanh toán']) || 0;
+        meiThanhTien = Number(onlyMei['Thành tiền']) || 0;
+        meiNgayHD = excelDateToJS(onlyMei['Ngày hóa đơn']);
+        if (Math.abs(dtPB - meiTongTT) > TOLERANCE_AMOUNT) {
+          issues.push(`SAI TIỀN (Misa ${fmt(dtPB)} ≠ Mei ${fmt(meiTongTT)})`);
+        }
+        if (ngayBD && meiNgayHD && dayKey(ngayBD) !== dayKey(meiNgayHD)) {
+          issues.push(`SAI NGÀY BĐ`);
+        }
+      }
+    } else {
+      // No matching Mei row - distinguish carried-over vs really orphan
+      if (ngayCT && meiPeriodStart && ngayCT < meiPeriodStart) {
+        warnings.push('Phiếu kế thừa từ kỳ trước (không có HĐ Mei trong kỳ này)');
+      } else {
+        issues.push('PHIẾU MISA THỪA (không có HĐ Mei tương ứng)');
+      }
+    }
+
+    // Check ngày kết thúc đúng convention
+    if (ngayBD && ngayKT && soNgayPB > 0) {
+      const expectedKT = new Date(ngayBD.getTime() + (soNgayPB - 1) * 86400000);
+      if (dayKey(ngayKT) !== dayKey(expectedKT)) {
+        warnings.push('Convention ngày KT lệch');
+      }
+    }
+
+    let status = 'OK';
+    if (issues.length > 0) status = 'ERROR';
+    else if (warnings.length > 0) status = 'WARN';
+
+    detail.push({
+      soCT: soCT,
+      key: key,
+      ngayCT: ngayCT,
+      maHang: maHang,
+      tenHang: normStr(misaRow['Tên hàng']),
+      ngayBD: ngayBD,
+      ngayKT: ngayKT,
+      soNgayPB: soNgayPB,
+      ruleDays: ruleDays,
+      dtPB: dtPB,
+      meiCount: meiCount,
+      misaCount: misaCount,
+      isMultiLineInvoice: isMultiLineInvoice,
+      meiThanhTien: meiThanhTien,
+      meiTongTT: meiTongTT,
+      meiNgayHD: meiNgayHD,
+      meiMaHang: matchedMei ? normStr(matchedMei['Mã hàng']) : '',
+      meiTenHang: matchedMei ? normStr(matchedMei['Tên hàng']) : '',
+      status: status,
+      issues: issues,
+      warnings: warnings,
+      isCarriedOver: warnings.some(w => w.includes('kế thừa')),
+    });
+  }
+
+  // ========== HĐ MEI CHƯA PHÂN BỔ ==========
+  const hdNotAllocated = [];
+  const hdExcluded = [];
+  for (const meiRow of meiFile.data) {
+    const soHD = normStr(meiRow['Số hóa đơn']);
+    const key = stripLeadingZeros(soHD);
+    if (!key) continue;
+    if (!misaByKey[key]) {
+      const item = {
+        soHD: soHD,
+        ngayHD: excelDateToJS(meiRow['Ngày hóa đơn']),
+        kyHieu: normStr(meiRow['Ký hiệu']),
+        tenKH: normStr(meiRow['Tên khách hàng'] || meiRow['Người mua hàng']),
+        maHang: normStr(meiRow['Mã hàng']),
+        tenHang: normStr(meiRow['Tên hàng']),
+        thanhTien: Number(meiRow['Thành tiền']) || 0,
+        tienThue: Number(meiRow['Tiền thuế GTGT']) || 0,
+        tongTT: Number(meiRow['Tổng tiền thanh toán']) || 0,
+        trangThai: normStr(meiRow['Trạng thái hóa đơn']),
+      };
+      const ex = isHDExcluded(meiRow);
+      if (ex.excluded) {
+        item.exclusionReason = ex.reason;
+        hdExcluded.push(item);
+      } else {
+        hdNotAllocated.push(item);
+      }
+    }
+  }
+
+  // Sort missing rule by count desc
+  missingRule.sort((a,b) => b.count - a.count);
+
+  // Build summary
+  const summary = {
+    totalMisa: detail.length,
+    totalMei: meiFile.data.length,
+    okCount: detail.filter(d => d.status === 'OK').length,
+    warnCount: detail.filter(d => d.status === 'WARN').length,
+    errorCount: detail.filter(d => d.status === 'ERROR').length,
+    carriedOverCount: detail.filter(d => d.isCarriedOver).length,
+    multiLineCount: detail.filter(d => d.isMultiLineInvoice).length,
+    multiLineKeysCount: new Set(detail.filter(d => d.isMultiLineInvoice).map(d => d.key)).size,
+    hdNotAllocCount: hdNotAllocated.length,
+    hdExcludedCount: hdExcluded.length,
+    misaThuaCount: detail.filter(d => d.issues.some(i => i.includes('THỪA'))).length,
+    missingRuleCount: missingRule.length,
+    missingRuleRows: detail.filter(d => d.issues.includes('THIẾU RULE')).length,
+    saiTienCount: detail.filter(d => d.issues.some(i => i.startsWith('SAI TIỀN'))).length,
+    saiKyCount: detail.filter(d => d.issues.some(i => i.startsWith('SAI KỲ'))).length,
+    saiNgayBDCount: detail.filter(d => d.issues.some(i => i.startsWith('SAI NGÀY BĐ'))).length,
+    totalDoanhThu: detail.reduce((s,d) => s + d.dtPB, 0),
+    meiPeriodStart: meiPeriodStart,
+  };
+
+  APP.resultsData = { detail, hdNotAllocated, hdExcluded, missingRule, summary };
+  renderResults();
+}
+
+// ============================================================
+// RENDER RESULTS
+// ============================================================
+function renderResults() {
+  const { detail, hdNotAllocated, hdExcluded, missingRule, summary } = APP.resultsData;
+
+  // KPI cards
+  const okPct = summary.totalMisa > 0 ? (summary.okCount / summary.totalMisa * 100).toFixed(1) : 0;
+  const periodInfo = summary.meiPeriodStart ? `Kỳ Mei: từ ${formatDate(summary.meiPeriodStart)}` : '';
+  $('kpiGrid').innerHTML = `
+    <div class="kpi-card success">
+      <div class="kpi-label">Phiếu OK</div>
+      <div class="kpi-value">${summary.okCount.toLocaleString('vi-VN')}</div>
+      <div class="kpi-sub">${okPct}% / ${summary.totalMisa.toLocaleString('vi-VN')} phiếu Misa</div>
+    </div>
+    <div class="kpi-card error">
+      <div class="kpi-label">Phiếu lỗi</div>
+      <div class="kpi-value">${summary.errorCount.toLocaleString('vi-VN')}</div>
+      <div class="kpi-sub">cần kiểm tra & xử lý</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Phiếu cảnh báo</div>
+      <div class="kpi-value">${summary.warnCount.toLocaleString('vi-VN')}</div>
+      <div class="kpi-sub">${summary.carriedOverCount > 0 ? summary.carriedOverCount + ' phiếu kế thừa kỳ trước' : 'tolerance / cần review'}</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">HĐ chưa phân bổ</div>
+      <div class="kpi-value">${summary.hdNotAllocCount.toLocaleString('vi-VN')}</div>
+      <div class="kpi-sub">${summary.hdExcludedCount > 0 ? '(đã loại ' + summary.hdExcludedCount + ' HĐ không cần PB) · ' : ''}/ ${summary.totalMei.toLocaleString('vi-VN')} HĐ Mei</div>
+    </div>
+  `;
+
+  // Tabs
+  const tabs = [
+    { id: 'detail', label: 'Chi tiết đối chiếu', count: detail.length, badgeClass: '' },
+    { id: 'errors', label: 'Phiếu lỗi', count: summary.errorCount, badgeClass: summary.errorCount ? 'error' : '' },
+    { id: 'warns', label: 'Phiếu cảnh báo', count: summary.warnCount, badgeClass: summary.warnCount ? 'warn' : '' },
+    { id: 'multiline', label: 'HĐ nhiều mặt hàng', count: summary.multiLineKeysCount, badgeClass: '' },
+    { id: 'carried', label: 'Phiếu kế thừa kỳ trước', count: summary.carriedOverCount, badgeClass: '' },
+    { id: 'hdmissing', label: 'HĐ chưa phân bổ', count: hdNotAllocated.length, badgeClass: hdNotAllocated.length ? 'warn' : '' },
+    { id: 'missingrule', label: 'Mã thiếu rule', count: missingRule.length, badgeClass: missingRule.length ? 'error' : '' },
+  ];
+
+  $('resultsTabs').innerHTML = tabs.map((t, i) =>
+    `<button class="tab ${i === 0 ? 'active' : ''}" data-tab="${t.id}">
+       ${t.label}
+       <span class="tab-badge ${t.badgeClass}">${t.count.toLocaleString('vi-VN')}</span>
+     </button>`
+  ).join('');
+
+  $('tabContents').innerHTML = `
+    <div class="tab-content active" data-content="detail">${renderDetailTable(detail, 'all')}</div>
+    <div class="tab-content" data-content="errors">${renderDetailTable(detail, 'error')}</div>
+    <div class="tab-content" data-content="warns">${renderDetailTable(detail, 'warn')}</div>
+    <div class="tab-content" data-content="multiline">${renderMultiLineTable(detail.filter(d => d.isMultiLineInvoice))}</div>
+    <div class="tab-content" data-content="carried">${renderDetailTable(detail.filter(d => d.isCarriedOver), 'carried')}</div>
+    <div class="tab-content" data-content="hdmissing">${renderHDMissingTable(hdNotAllocated)}</div>
+    <div class="tab-content" data-content="missingrule">${renderMissingRuleTable(missingRule)}</div>
+  `;
+
+  // Bind tab clicks
+  $('resultsTabs').querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $('resultsTabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const id = tab.dataset.tab;
+      $('tabContents').querySelectorAll('.tab-content').forEach(c => {
+        c.classList.toggle('active', c.dataset.content === id);
+      });
+    });
+  });
+
+  bindTableFilters();
+
+  $('resultsSection').classList.add('visible');
+  $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderDetailTable(rows, mode='all') {
+  let filtered = rows;
+  if (mode === 'error') filtered = rows.filter(r => r.status === 'ERROR');
+  if (mode === 'warn') filtered = rows.filter(r => r.status === 'WARN' && !r.isCarriedOver);
+  // mode 'carried' nhận rows đã filter sẵn từ caller
+
+  if (filtered.length === 0) {
+    return `<div class="empty-state"><div class="empty-state-icon">✓</div>Không có phiếu nào trong nhóm này.</div>`;
+  }
+
+  let intro = '';
+  if (mode === 'carried') {
+    intro = `
+      <div class="alert info">
+        <span class="alert-icon">[i]</span>
+        <div>
+          Đây là các phiếu phân bổ Misa kéo qua từ kỳ trước (Ngày chứng từ trước kỳ Meinvoice).
+          Đây là behavior bình thường — phân bổ DT đa kỳ. Tool vẫn check số ngày PB so với rule.
+        </div>
+      </div>`;
+  } else if (mode === 'warn') {
+    intro = `
+      <div class="alert warn">
+        <span class="alert-icon">[!]</span>
+        <div>
+          Phiếu cảnh báo là phiếu lệch nhẹ, không nghiêm trọng — vẫn cần review nhưng có thể chấp nhận. Lý do thường gặp:
+          <strong>Tolerance ±N ngày</strong> (rule X ngày, Misa X±1..3 ngày), <strong>Convention ngày KT lệch</strong> (NgàyKT ≠ NgàyBĐ + Số ngày − 1),
+          <strong>HĐ multi-line không map được dòng cụ thể</strong> (so theo tổng).
+          Lý do chi tiết của từng phiếu xem ở cột <strong>Lý do</strong>.
+        </div>
+      </div>`;
+  }
+
+  const tableId = 'detail_' + mode;
+  return `
+    ${intro}
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <input type="text" class="filter-input" placeholder="Lọc theo mã, số CT, lý do..." data-table="${tableId}" />
+        <select class="filter-status" data-table="${tableId}">
+          <option value="">Tất cả status</option>
+          <option value="OK">OK</option>
+          <option value="WARN">Cảnh báo</option>
+          <option value="ERROR">Lỗi</option>
+        </select>
+        <div class="spacer"></div>
+        <span class="table-info" id="info_${tableId}">${filtered.length.toLocaleString('vi-VN')} dòng</span>
+      </div>
+      <div class="data-table-scroll">
+        <table class="data-table" id="${tableId}">
+          <thead>
+            <tr>
+              <th>Số CT</th>
+              <th>Mã hàng</th>
+              <th>Tên hàng</th>
+              <th class="num">Số ngày PB</th>
+              <th class="num">Rule</th>
+              <th>Ngày BĐ PB</th>
+              <th>Ngày HĐ Mei</th>
+              <th class="num">DT phân bổ</th>
+              <th class="num">Tổng TT (sau VAT)</th>
+              <th>Status</th>
+              <th style="min-width:220px">Lý do</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(r => renderDetailRow(r)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderDetailRow(r) {
+  const rowClass = r.status === 'ERROR' ? 'row-error' : (r.status === 'WARN' ? 'row-warn' : '');
+  const statusPill = r.status === 'ERROR' ? '<span class="status-pill err">LỖI</span>' :
+                     r.status === 'WARN' ? '<span class="status-pill warn">CẢNH BÁO</span>' :
+                     '<span class="status-pill ok">OK</span>';
+  const multiBadge = r.isMultiLineInvoice ? '<span class="status-pill info" style="margin-left:4px" title="HĐ có nhiều mặt hàng">MULTI</span>' : '';
+
+  // Build reason cell
+  let reasonHTML;
+  if (r.issues.length > 0) {
+    reasonHTML = r.issues.map(i => `<div class="reason-line err">${escapeHTML(i)}</div>`).join('');
+    if (r.warnings.length > 0) {
+      reasonHTML += r.warnings.map(w => `<div class="reason-line warn">${escapeHTML(w)}</div>`).join('');
+    }
+  } else if (r.warnings.length > 0) {
+    reasonHTML = r.warnings.map(w => `<div class="reason-line warn">${escapeHTML(w)}</div>`).join('');
+  } else {
+    reasonHTML = '<span style="color:#9ca3af">—</span>';
+  }
+
+  // Highlight cells based on issue
+  const ngayCellClass = r.issues.some(i => i.startsWith('SAI KỲ')) ? 'cell-issue' : '';
+  const tienCellClass = r.issues.some(i => i.startsWith('SAI TIỀN')) ? 'cell-issue' : '';
+  const ngayBDCellClass = r.issues.some(i => i.startsWith('SAI NGÀY BĐ')) ? 'cell-issue' : '';
+  const maCellClass = r.issues.includes('THIẾU RULE') ? 'cell-issue' : '';
+
+  return `
+    <tr class="${rowClass}">
+      <td class="mono">${escapeHTML(r.soCT)}${multiBadge}</td>
+      <td class="mono ${maCellClass}">${escapeHTML(r.maHang)}</td>
+      <td>${escapeHTML((r.tenHang||'').slice(0,55))}${r.tenHang && r.tenHang.length > 55 ? '…' : ''}</td>
+      <td class="num ${ngayCellClass}">${r.soNgayPB}</td>
+      <td class="num">${r.ruleDays != null ? r.ruleDays : '—'}</td>
+      <td class="mono ${ngayBDCellClass}">${formatDate(r.ngayBD)}</td>
+      <td class="mono">${formatDate(r.meiNgayHD)}</td>
+      <td class="num">${fmt(r.dtPB)}</td>
+      <td class="num ${tienCellClass}">${r.meiTongTT != null ? fmt(r.meiTongTT) : '—'}</td>
+      <td>${statusPill}</td>
+      <td>${reasonHTML}</td>
+    </tr>`;
+}
+
+function renderMultiLineTable(rows) {
+  if (rows.length === 0) {
+    return `<div class="empty-state"><div class="empty-state-icon">✓</div>Không có HĐ nào có nhiều mặt hàng trong dữ liệu này.</div>`;
+  }
+  // Group by key (số HĐ)
+  const groups = {};
+  rows.forEach(r => {
+    if (!groups[r.key]) groups[r.key] = [];
+    groups[r.key].push(r);
+  });
+  const groupKeys = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
+
+  return `
+    <div class="alert info">
+      <span class="alert-icon">[i]</span>
+      <div>
+        <strong>${groupKeys.length.toLocaleString('vi-VN')} hóa đơn</strong> có nhiều mặt hàng (tổng <strong>${rows.length.toLocaleString('vi-VN')} dòng phân bổ</strong>).
+        Mỗi dòng được match với dòng Mei tương ứng theo Mã SP → số tiền → tên hàng. Check kỳ và tiền thực hiện từng dòng giống HĐ 1 mặt hàng.
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <input type="text" class="filter-input" placeholder="Lọc theo số HĐ, mã, tên hàng..." data-table="multiline_table" />
+        <select class="filter-status" data-table="multiline_table">
+          <option value="">Tất cả status</option>
+          <option value="OK">OK</option>
+          <option value="WARN">Cảnh báo</option>
+          <option value="ERROR">Lỗi</option>
+        </select>
+        <div class="spacer"></div>
+        <span class="table-info" id="info_multiline_table">${rows.length.toLocaleString('vi-VN')} dòng</span>
+      </div>
+      <div class="data-table-scroll">
+        <table class="data-table" id="multiline_table">
+          <thead>
+            <tr>
+              <th>Số HĐ</th>
+              <th>Dòng</th>
+              <th>Mã hàng (Misa)</th>
+              <th>Mã hàng (Mei)</th>
+              <th>Tên hàng</th>
+              <th class="num">Số ngày PB</th>
+              <th class="num">Rule</th>
+              <th class="num">DT PB Misa</th>
+              <th class="num">Tổng TT Mei</th>
+              <th>Status</th>
+              <th>Vấn đề</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${groupKeys.map(key => {
+              const items = groups[key];
+              return items.map((r, i) => {
+                const rowClass = r.status === 'ERROR' ? 'row-error' : (r.status === 'WARN' ? 'row-warn' : '');
+                const statusPill = r.status === 'ERROR' ? '<span class="status-pill err">LỖI</span>' :
+                                   r.status === 'WARN' ? '<span class="status-pill warn">CẢNH BÁO</span>' :
+                                   '<span class="status-pill ok">OK</span>';
+                const issuesHTML = r.issues.length > 0
+                  ? r.issues.map(x => `<div style="color:#b91c1c">${escapeHTML(x)}</div>`).join('')
+                  : (r.warnings.length > 0
+                     ? r.warnings.map(x => `<div style="color:#92400e">${escapeHTML(x)}</div>`).join('')
+                     : '<span style="color:#9ca3af">—</span>');
+                const isFirst = i === 0;
+                const tienCellClass = r.issues.some(x => x.startsWith('SAI TIỀN')) ? 'cell-issue' : '';
+                const ngayCellClass = r.issues.some(x => x.startsWith('SAI KỲ')) ? 'cell-issue' : '';
+                const maCellClass = r.issues.includes('THIẾU RULE') ? 'cell-issue' : '';
+                const meiMaMissing = !r.meiMaHang ? 'style="color:#9ca3af;font-style:italic"' : '';
+                return `
+                  <tr class="${rowClass}" ${isFirst && items.length > 1 ? 'style="border-top:2px solid var(--border-strong)"' : ''}>
+                    <td class="mono">${isFirst ? escapeHTML(r.soCT) : ''}</td>
+                    <td class="mono" style="color:var(--muted);font-size:11px">${i+1}/${items.length}</td>
+                    <td class="mono ${maCellClass}">${escapeHTML(r.maHang)}</td>
+                    <td class="mono" ${meiMaMissing}>${escapeHTML(r.meiMaHang || '(Mei trống mã)')}</td>
+                    <td>${escapeHTML((r.tenHang||'').slice(0,50))}${r.tenHang && r.tenHang.length > 50 ? '…' : ''}</td>
+                    <td class="num ${ngayCellClass}">${r.soNgayPB}</td>
+                    <td class="num">${r.ruleDays != null ? r.ruleDays : '—'}</td>
+                    <td class="num">${fmt(r.dtPB)}</td>
+                    <td class="num ${tienCellClass}">${r.meiTongTT != null ? fmt(r.meiTongTT) : '—'}</td>
+                    <td>${statusPill}</td>
+                    <td style="font-size:11px">${issuesHTML}</td>
+                  </tr>`;
+              }).join('');
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderHDMissingTable(rows) {
+  const excluded = APP.resultsData.hdExcluded || [];
+  const exclusionUI = renderExclusionPanel();
+
+  if (rows.length === 0 && excluded.length === 0) {
+    return exclusionUI + `<div class="empty-state"><div class="empty-state-icon">✓</div>Tất cả HĐ Meinvoice đều đã có phiếu phân bổ Misa tương ứng.</div>`;
+  }
+
+  const totalAmount = rows.reduce((s,r) => s + r.tongTT, 0);
+  const excludedAmount = excluded.reduce((s,r) => s + r.tongTT, 0);
+
+  const mainTable = rows.length === 0 ? `
+    <div class="empty-state"><div class="empty-state-icon">✓</div>Sau khi áp dụng filter loại trừ, không còn HĐ nào thực sự cần kiểm tra.</div>
+  ` : `
+    <div class="alert error">
+      <span class="alert-icon">[!]</span>
+      <div>
+        <strong>${rows.length.toLocaleString('vi-VN')} hóa đơn</strong> có trên Meinvoice nhưng chưa có phiếu phân bổ Misa tương ứng (tổng <strong>${fmt(totalAmount)} đ</strong>) — sau khi áp dụng filter loại trừ.
+        Đây là các HĐ thực sự cần kiểm tra: có thể chưa được kế toán hạch toán phân bổ.
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <input type="text" class="filter-input" placeholder="Lọc..." data-table="hd_missing" />
+        <div class="spacer"></div>
+        <span class="table-info">${rows.length.toLocaleString('vi-VN')} dòng</span>
+      </div>
+      <div class="data-table-scroll">
+        <table class="data-table" id="hd_missing">
+          <thead>
+            <tr>
+              <th>Số HĐ</th>
+              <th>Ngày HĐ</th>
+              <th>Ký hiệu</th>
+              <th>Khách hàng</th>
+              <th>Mã hàng</th>
+              <th>Tên hàng</th>
+              <th class="num">Thành tiền</th>
+              <th class="num">Tiền thuế</th>
+              <th class="num">Tổng TT</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td class="mono">${escapeHTML(r.soHD)}</td>
+                <td class="mono">${formatDate(r.ngayHD)}</td>
+                <td class="mono">${escapeHTML(r.kyHieu)}</td>
+                <td>${escapeHTML((r.tenKH||'').slice(0,40))}</td>
+                <td class="mono">${escapeHTML(r.maHang)}</td>
+                <td>${escapeHTML((r.tenHang||'').slice(0,55))}${r.tenHang && r.tenHang.length > 55 ? '…' : ''}</td>
+                <td class="num">${fmt(r.thanhTien)}</td>
+                <td class="num">${fmt(r.tienThue)}</td>
+                <td class="num">${fmt(r.tongTT)}</td>
+                <td>${escapeHTML(r.trangThai)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // Excluded list (collapsible)
+  const excludedTable = excluded.length === 0 ? '' : `
+    <div style="margin-top: 24px;">
+      <details>
+        <summary style="cursor:pointer; padding: 10px 0; font-weight: 600; color: var(--muted); font-size: 13px;">
+          ▸ Danh sách <strong style="color:var(--ink)">${excluded.length.toLocaleString('vi-VN')} HĐ đã được loại trừ</strong>
+          (tổng ${fmt(excludedAmount)} đ — không cần phân bổ)
+        </summary>
+        <div class="table-wrap" style="margin-top: 12px;">
+          <div class="table-toolbar">
+            <input type="text" class="filter-input" placeholder="Lọc..." data-table="hd_excluded" />
+            <div class="spacer"></div>
+            <span class="table-info">${excluded.length.toLocaleString('vi-VN')} HĐ đã loại trừ</span>
+          </div>
+          <div class="data-table-scroll" style="max-height:400px">
+            <table class="data-table" id="hd_excluded">
+              <thead>
+                <tr>
+                  <th>Số HĐ</th>
+                  <th>Ngày HĐ</th>
+                  <th>Tên hàng</th>
+                  <th class="num">Tổng TT</th>
+                  <th>Trạng thái</th>
+                  <th>Lý do loại trừ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${excluded.map(r => `
+                  <tr style="opacity:0.85">
+                    <td class="mono">${escapeHTML(r.soHD)}</td>
+                    <td class="mono">${formatDate(r.ngayHD)}</td>
+                    <td>${escapeHTML((r.tenHang||'').slice(0,55))}${r.tenHang && r.tenHang.length > 55 ? '…' : ''}</td>
+                    <td class="num">${fmt(r.tongTT)}</td>
+                    <td>${escapeHTML(r.trangThai)}</td>
+                    <td><span class="status-pill info">${escapeHTML(r.exclusionReason)}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
+
+  return exclusionUI + mainTable + excludedTable;
+}
+
+function renderExclusionPanel() {
+  const ex = APP.exclusionRules || DEFAULT_EXCLUSION;
+  const patternRows = ex.patterns.map((p, i) => `
+    <tr>
+      <td><input type="text" data-ex-field="keyword" data-ex-idx="${i}" value="${escapeHTML(p.keyword)}" placeholder="Từ khóa trong tên hàng" /></td>
+      <td><input type="text" data-ex-field="desc" data-ex-idx="${i}" value="${escapeHTML(p.desc||'')}" placeholder="Mô tả lý do" /></td>
+      <td><button class="rule-delete-btn" data-ex-del="${i}" title="Xóa">×</button></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="exclusion-panel">
+      <details ${(!ex.patterns || ex.patterns.length === 0) ? 'open' : ''}>
+        <summary class="exclusion-summary">
+          <span>⚙ Filter loại trừ HĐ chưa phân bổ</span>
+          <span class="exclusion-summary-meta">
+            <span class="rule-chip"><strong>${ex.patterns.length}</strong> pattern</span>
+            ${ex.excludeReplacedStatus ? '<span class="rule-chip">+ HĐ thay thế</span>' : ''}
+          </span>
+        </summary>
+        <div class="exclusion-body">
+          <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+            Tool tự động loại các HĐ không cần phân bổ DT (lệ phí thi 1 lần, quà tặng, chi phí quảng cáo...) khỏi danh sách "HĐ chưa phân bổ" để bạn tập trung vào các HĐ thực sự cần kiểm tra.
+            Pattern khớp khi <strong>Tên hàng</strong> chứa từ khóa (không phân biệt hoa thường).
+          </p>
+          <label style="display:flex; align-items:center; gap:8px; margin-bottom: 12px; cursor:pointer; font-size:13px;">
+            <input type="checkbox" id="exReplacedToggle" ${ex.excludeReplacedStatus ? 'checked' : ''} />
+            Loại các HĐ có Trạng thái = "Hóa đơn đã bị thay thế"
+          </label>
+          <div class="rule-table-wrap" style="display:block; max-height:300px;">
+            <table class="rule-table">
+              <thead>
+                <tr>
+                  <th style="width:35%">Từ khóa (substring)</th>
+                  <th>Mô tả lý do</th>
+                  <th class="col-act"></th>
+                </tr>
+              </thead>
+              <tbody id="exclusionTbody">${patternRows}</tbody>
+            </table>
+          </div>
+          <div style="display:flex; gap:8px; margin-top: 12px;">
+            <button class="btn small" id="btnAddExPattern">+ Thêm pattern</button>
+            <button class="btn small" id="btnResetEx">Reset mặc định</button>
+            <div style="flex:1"></div>
+            <button class="btn small primary" id="btnApplyEx">Áp dụng & chạy lại</button>
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function renderMissingRuleTable(rows) {
+  if (rows.length === 0) {
+    return `<div class="empty-state"><div class="empty-state-icon">✓</div>Tất cả mã hàng trên Misa đều có trong rule.</div>`;
+  }
+  return `
+    <div class="alert error">
+      <span class="alert-icon">[!]</span>
+      <div>
+        <strong>${rows.length.toLocaleString('vi-VN')} mã sản phẩm</strong> xuất hiện trong báo cáo Misa nhưng không có trong rule phân bổ.
+        Cần bổ sung rule để tool có thể đối chiếu kỳ phân bổ.
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <input type="text" class="filter-input" placeholder="Lọc..." data-table="missing_rule" />
+        <div class="spacer"></div>
+        <button class="btn small" id="btnAddAllMissing">+ Thêm tất cả vào rule (mặc định 30 ngày)</button>
+      </div>
+      <div class="data-table-scroll">
+        <table class="data-table" id="missing_rule">
+          <thead>
+            <tr>
+              <th>Mã hàng</th>
+              <th>Tên hàng</th>
+              <th class="num">Số phiếu</th>
+              <th class="num">Tổng DT (đ)</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td class="mono cell-issue">${escapeHTML(r.ma)}</td>
+                <td>${escapeHTML((r.ten||'').slice(0,80))}</td>
+                <td class="num">${r.count}</td>
+                <td class="num">${fmt(r.totalDT)}</td>
+                <td>
+                  <button class="btn small" data-add-rule="${escapeHTML(r.ma)}" data-add-name="${escapeHTML(r.ten||'')}">+ Thêm vào rule</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function bindTableFilters() {
+  document.querySelectorAll('.filter-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const tableId = input.dataset.table;
+      const tbl = document.getElementById(tableId);
+      if (!tbl) return;
+      const f = input.value.toLowerCase().trim();
+      const statusSel = document.querySelector(`.filter-status[data-table="${tableId}"]`);
+      const statusF = statusSel ? statusSel.value : '';
+      let visible = 0;
+      tbl.querySelectorAll('tbody tr').forEach(tr => {
+        const text = tr.textContent.toLowerCase();
+        let show = !f || text.includes(f);
+        if (statusF && show) {
+          const pill = tr.querySelector('.status-pill');
+          if (pill) {
+            if (statusF === 'OK' && !pill.classList.contains('ok')) show = false;
+            if (statusF === 'WARN' && !pill.classList.contains('warn')) show = false;
+            if (statusF === 'ERROR' && !pill.classList.contains('err')) show = false;
+          }
+        }
+        tr.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      const info = document.getElementById('info_' + tableId);
+      if (info) info.textContent = visible.toLocaleString('vi-VN') + ' dòng';
+    });
+  });
+  document.querySelectorAll('.filter-status').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const tableId = sel.dataset.table;
+      const input = document.querySelector(`.filter-input[data-table="${tableId}"]`);
+      if (input) input.dispatchEvent(new Event('input'));
+    });
+  });
+  // Add rule from missing
+  document.querySelectorAll('[data-add-rule]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ma = btn.dataset.addRule;
+      const ten = btn.dataset.addName;
+      if (APP.rules.find(r => r.ma === ma)) {
+        showToast('Mã đã có trong rule.', 'error');
+        return;
+      }
+      APP.rules.push({ ma, ten, loai: '', days: 30 });
+      saveRules();
+      renderRuleSummary();
+      renderRuleTable($('ruleSearchInput').value);
+      btn.textContent = '✓ Đã thêm';
+      btn.disabled = true;
+      showToast(`Đã thêm "${ma}" vào rule (mặc định 30 ngày). Hãy chạy lại đối chiếu.`, 'success');
+    });
+  });
+  const addAllBtn = document.getElementById('btnAddAllMissing');
+  if (addAllBtn) {
+    addAllBtn.addEventListener('click', () => {
+      const missing = APP.resultsData.missingRule;
+      let added = 0;
+      missing.forEach(m => {
+        if (!APP.rules.find(r => r.ma === m.ma)) {
+          APP.rules.push({ ma: m.ma, ten: m.ten, loai: '', days: 30 });
+          added++;
+        }
+      });
+      saveRules();
+      renderRuleSummary();
+      renderRuleTable($('ruleSearchInput').value);
+      showToast(`Đã thêm ${added} mã vào rule. Chạy lại đối chiếu để cập nhật kết quả.`, 'success');
+    });
+  }
+
+  // Exclusion panel bindings
+  const exTbody = document.getElementById('exclusionTbody');
+  if (exTbody) {
+    exTbody.addEventListener('input', (e) => {
+      const t = e.target;
+      const idx = parseInt(t.dataset.exIdx);
+      const field = t.dataset.exField;
+      if (idx >= 0 && field && APP.exclusionRules.patterns[idx]) {
+        APP.exclusionRules.patterns[idx][field] = t.value;
+        saveExclusion();
+      }
+    });
+    exTbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ex-del]');
+      if (btn) {
+        const idx = parseInt(btn.dataset.exDel);
+        APP.exclusionRules.patterns.splice(idx, 1);
+        saveExclusion();
+        renderResults();
+      }
+    });
+  }
+  const exReplaced = document.getElementById('exReplacedToggle');
+  if (exReplaced) {
+    exReplaced.addEventListener('change', () => {
+      APP.exclusionRules.excludeReplacedStatus = exReplaced.checked;
+      saveExclusion();
+    });
+  }
+  const exAdd = document.getElementById('btnAddExPattern');
+  if (exAdd) {
+    exAdd.addEventListener('click', () => {
+      APP.exclusionRules.patterns.push({ keyword: '', desc: '' });
+      saveExclusion();
+      renderResults();
+      // Re-open the details
+      setTimeout(() => {
+        const det = document.querySelector('.exclusion-panel details');
+        if (det) det.open = true;
+      }, 50);
+    });
+  }
+  const exReset = document.getElementById('btnResetEx');
+  if (exReset) {
+    exReset.addEventListener('click', () => {
+      if (!confirm('Reset filter loại trừ về mặc định?')) return;
+      APP.exclusionRules = JSON.parse(JSON.stringify(DEFAULT_EXCLUSION));
+      saveExclusion();
+      runCheck();
+      showToast('Đã reset filter loại trừ.', 'success');
+    });
+  }
+  const exApply = document.getElementById('btnApplyEx');
+  if (exApply) {
+    exApply.addEventListener('click', () => {
+      runCheck();
+      showToast('Đã áp dụng filter loại trừ và chạy lại đối chiếu.', 'success');
+    });
+  }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportToExcel() {
+  if (!APP.resultsData) return;
+  const { detail, hdNotAllocated, hdExcluded, missingRule, summary } = APP.resultsData;
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Tổng hợp
+  const summaryRows = [
+    ['BÁO CÁO ĐỐI CHIẾU PHÂN BỔ DOANH THU'],
+    ['Ngày tạo', new Date().toLocaleString('vi-VN')],
+    [],
+    ['Chỉ số', 'Giá trị'],
+    ['Tổng phiếu Misa', summary.totalMisa],
+    ['Tổng HĐ Meinvoice', summary.totalMei],
+    ['Phiếu OK', summary.okCount],
+    ['Phiếu cảnh báo', summary.warnCount],
+    ['Phiếu lỗi', summary.errorCount],
+    ['HĐ chưa phân bổ (cần kiểm tra)', summary.hdNotAllocCount],
+    ['HĐ đã loại trừ', summary.hdExcludedCount],
+    ['HĐ nhiều mặt hàng (số HĐ)', summary.multiLineKeysCount],
+    ['HĐ nhiều mặt hàng (số dòng)', summary.multiLineCount],
+    ['Mã SP thiếu rule', summary.missingRuleCount],
+    ['Phiếu thiếu rule', summary.missingRuleRows],
+    ['Phiếu sai tiền', summary.saiTienCount],
+    ['Phiếu sai kỳ', summary.saiKyCount],
+    ['Phiếu sai ngày BĐ', summary.saiNgayBDCount],
+    ['Tổng doanh thu phân bổ', summary.totalDoanhThu],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1['!cols'] = [{wch: 32}, {wch: 22}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Tổng hợp');
+
+  // Sheet 2: Chi tiết
+  const detailHeader = ['Số CT', 'Multi-line', 'Mã hàng (Misa)', 'Mã hàng (Mei)', 'Tên hàng', 'Số ngày PB', 'Rule (ngày)', 'Ngày BĐ PB', 'Ngày KT PB',
+    'Ngày HĐ Mei', 'DT Phân bổ', 'Thành tiền (chưa VAT)', 'Tổng TT (sau VAT)',
+    'Status', 'Vấn đề'];
+  const detailRows = [detailHeader, ...detail.map(d => [
+    d.soCT, d.isMultiLineInvoice ? 'Yes' : '', d.maHang, d.meiMaHang || '', d.tenHang, d.soNgayPB, d.ruleDays,
+    formatDate(d.ngayBD), formatDate(d.ngayKT),
+    formatDate(d.meiNgayHD), d.dtPB, d.meiThanhTien, d.meiTongTT,
+    d.status, [...d.issues, ...d.warnings].join(' | ')
+  ])];
+  const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+  ws2['!cols'] = [{wch:10},{wch:8},{wch:32},{wch:24},{wch:50},{wch:10},{wch:10},{wch:11},{wch:11},{wch:11},{wch:14},{wch:14},{wch:14},{wch:8},{wch:50}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Chi tiết đối chiếu');
+
+  // Sheet: HĐ multi-line
+  const multiRows = detail.filter(d => d.isMultiLineInvoice);
+  if (multiRows.length > 0) {
+    const mlHeader = ['Số HĐ', 'Mã hàng (Misa)', 'Mã hàng (Mei)', 'Tên hàng', 'Số ngày PB', 'Rule', 'DT PB Misa', 'Tổng TT Mei', 'Status', 'Vấn đề'];
+    const mlRows = [mlHeader, ...multiRows.map(d => [
+      d.soCT, d.maHang, d.meiMaHang || '', d.tenHang, d.soNgayPB, d.ruleDays,
+      d.dtPB, d.meiTongTT, d.status, [...d.issues, ...d.warnings].join(' | ')
+    ])];
+    const wsML = XLSX.utils.aoa_to_sheet(mlRows);
+    wsML['!cols'] = [{wch:10},{wch:32},{wch:24},{wch:50},{wch:10},{wch:8},{wch:14},{wch:14},{wch:8},{wch:50}];
+    XLSX.utils.book_append_sheet(wb, wsML, 'HĐ nhiều mặt hàng');
+  }
+
+  // Sheet 3: HĐ chưa phân bổ
+  if (hdNotAllocated.length > 0) {
+    const hdHeader = ['Số HĐ','Ngày HĐ','Ký hiệu','Khách hàng','Mã hàng','Tên hàng','Thành tiền','Tiền thuế','Tổng TT','Trạng thái'];
+    const hdRows = [hdHeader, ...hdNotAllocated.map(r => [
+      r.soHD, formatDate(r.ngayHD), r.kyHieu, r.tenKH, r.maHang, r.tenHang,
+      r.thanhTien, r.tienThue, r.tongTT, r.trangThai
+    ])];
+    const ws3 = XLSX.utils.aoa_to_sheet(hdRows);
+    ws3['!cols'] = [{wch:10},{wch:11},{wch:10},{wch:30},{wch:25},{wch:50},{wch:14},{wch:12},{wch:14},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'HĐ chưa phân bổ');
+  }
+
+  // Sheet: HĐ đã loại trừ
+  if (hdExcluded && hdExcluded.length > 0) {
+    const exHeader = ['Số HĐ','Ngày HĐ','Tên hàng','Tổng TT','Trạng thái','Lý do loại trừ'];
+    const exRows = [exHeader, ...hdExcluded.map(r => [
+      r.soHD, formatDate(r.ngayHD), r.tenHang, r.tongTT, r.trangThai, r.exclusionReason
+    ])];
+    const wsEx = XLSX.utils.aoa_to_sheet(exRows);
+    wsEx['!cols'] = [{wch:10},{wch:11},{wch:50},{wch:14},{wch:18},{wch:38}];
+    XLSX.utils.book_append_sheet(wb, wsEx, 'HĐ đã loại trừ');
+  }
+
+  // Sheet 4: Mã thiếu rule
+  if (missingRule.length > 0) {
+    const mrHeader = ['Mã hàng','Tên hàng','Số phiếu','Tổng doanh thu (đ)'];
+    const mrRows = [mrHeader, ...missingRule.map(r => [r.ma, r.ten, r.count, r.totalDT])];
+    const ws4 = XLSX.utils.aoa_to_sheet(mrRows);
+    ws4['!cols'] = [{wch:35},{wch:60},{wch:10},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws4, 'Mã thiếu rule');
+  }
+
+  // Sheet 5: Rule đang dùng
+  const ruleHeader = ['Mã sản phẩm','Tên sản phẩm','Loại','Số ngày PB'];
+  const ruleRows = [ruleHeader, ...APP.rules.map(r => [r.ma, r.ten, r.loai, r.days])];
+  const ws5 = XLSX.utils.aoa_to_sheet(ruleRows);
+  ws5['!cols'] = [{wch:35},{wch:60},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws5, 'Rule đang dùng');
+
+  const ts = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, `Check_PhanBo_DT_${ts}.xlsx`);
+  showToast('Đã xuất file Excel.', 'success');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadRules();
+  loadExclusion();
+  renderRuleSummary();
+  renderRuleTable();
+  bindRuleTable();
+
+  if (APP._autoMergedCount && APP._autoMergedCount > 0) {
+    setTimeout(() => {
+      showToast(`Đã tự động bổ sung ${APP._autoMergedCount} mã rule mới (cập nhật từ bản mặc định mới hơn).`, 'success');
+    }, 600);
+  }
+
+  setupUploadZone();
+  renderFilesDetected();
+
+  // Rule toggle
+  $('ruleToggle').addEventListener('click', () => {
+    const wrap = $('ruleTableWrap');
+    const open = wrap.classList.toggle('open');
+    $('ruleToggleIcon').textContent = open ? '▾' : '▸';
+    $('ruleToggleText').textContent = open ? 'Ẩn bảng rule' : 'Hiện bảng rule để chỉnh sửa';
+  });
+
+  // Rule search
+  $('ruleSearchInput').addEventListener('input', e => {
+    renderRuleTable(e.target.value);
+  });
+
+  // Add rule
+  $('btnAddRule').addEventListener('click', addNewRule);
+  $('btnAddRuleInline').addEventListener('click', addNewRule);
+
+  // Reset rule
+  $('btnResetRule').addEventListener('click', () => {
+    if (!confirm('Reset rule về mặc định? Tất cả chỉnh sửa sẽ mất.')) return;
+    APP.rules = APP.defaultRules.map(r => ({...r}));
+    saveRules();
+    renderRuleSummary();
+    renderRuleTable($('ruleSearchInput').value);
+    showToast('Đã reset rule về mặc định.', 'success');
+  });
+
+  // Export rule
+  $('btnExportRule').addEventListener('click', () => {
+    const wb = XLSX.utils.book_new();
+    const header = ['Mã sản phẩm','Tên sản phẩm','Loại','Số ngày PB'];
+    const rows = [header, ...APP.rules.map(r => [r.ma, r.ten, r.loai, r.days])];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:35},{wch:60},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Rule');
+    XLSX.writeFile(wb, 'Rule_PhanBo_DT.xlsx');
+  });
+
+  // Import rule
+  $('btnImportRule').addEventListener('click', () => $('ruleImportInput').click());
+  $('ruleImportInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        const arr = JSON.parse(text);
+        if (!Array.isArray(arr)) throw new Error('JSON phải là mảng');
+        APP.rules = arr.filter(r => r.ma && r.days).map(r => ({
+          ma: String(r.ma).trim(),
+          ten: String(r.ten || '').trim(),
+          loai: String(r.loai || '').trim(),
+          days: parseInt(r.days) || 30,
+        }));
+      } else {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        APP.rules = rows.filter(r => {
+          const ma = r['Mã sản phẩm'] || r['Mã'] || r.ma;
+          return ma;
+        }).map(r => ({
+          ma: String(r['Mã sản phẩm'] || r['Mã'] || r.ma).trim(),
+          ten: String(r['Tên sản phẩm'] || r['Tên'] || r.ten || '').trim(),
+          loai: String(r['Loại'] || r.loai || '').trim(),
+          days: parseInt(r['Số ngày PB'] || r['Thời gian phân bổ'] || r.days) || 30,
+        }));
+      }
+      saveRules();
+      renderRuleSummary();
+      renderRuleTable();
+      showToast(`Đã import ${APP.rules.length} mã.`, 'success');
+    } catch(err) {
+      showToast('Import lỗi: ' + err.message, 'error');
+    }
+    e.target.value = '';
+  });
+
+  // Run
+  $('btnRun').addEventListener('click', () => {
+    const btn = $('btnRun');
+    const lbl = $('runBtnLabel');
+    const arrow = $('runBtnArrow');
+    btn.disabled = true;
+    lbl.textContent = 'Đang xử lý';
+    arrow.innerHTML = '<span class="spinner"></span>';
+    setTimeout(() => {
+      try {
+        runCheck();
+      } catch(err) {
+        showToast('Lỗi xử lý: ' + err.message, 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        lbl.textContent = 'Chạy lại đối chiếu';
+        arrow.textContent = '↻';
+      }
+    }, 50);
+  });
+
+  // Export results
+  $('btnExportAll').addEventListener('click', exportToExcel);
+
+  updateRunButton();
+}
+
+function addNewRule() {
+  APP.rules.unshift({ ma: '', ten: '', loai: '', days: 30 });
+  saveRules();
+  renderRuleSummary();
+  renderRuleTable();
+  $('ruleTableWrap').classList.add('open');
+  $('ruleToggleIcon').textContent = '▾';
+  $('ruleToggleText').textContent = 'Ẩn bảng rule';
+  // Focus first cell
+  setTimeout(() => {
+    const first = document.querySelector('#ruleTableBody tr:first-child input[data-field=ma]');
+    if (first) first.focus();
+  }, 50);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

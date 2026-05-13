@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đối chiếu LCT × ĐNTT (Gemini AI)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #F5F1E8;
+    --bg-warm: #EFEAD8;
+    --surface: #FFFFFF;
+    --surface-2: #FBF8F1;
+    --border: #DDD5C2;
+    --border-strong: #C4BBA5;
+    --text: #1F2330;
+    --text-2: #555866;
+    --text-muted: #8A8C95;
+    --accent: #0E5E5C;
+    --accent-hover: #0A4544;
+    --accent-soft: #D7E8E5;
+    --success: #2D6A4F;
+    --success-bg: #DCEFE0;
+    --warn: #B45309;
+    --warn-bg: #FBE9C8;
+    --danger: #A01B1B;
+    --danger-bg: #F5DADA;
+    --shadow-sm: 0 1px 2px rgba(28, 32, 44, 0.04), 0 0 0 1px var(--border);
+    --shadow: 0 1px 3px rgba(28, 32, 44, 0.06), 0 4px 12px rgba(28, 32, 44, 0.04);
+    --shadow-lg: 0 8px 24px rgba(28, 32, 44, 0.10);
+    --r: 6px;
+    --r-lg: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(14, 94, 92, 0.04), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(180, 83, 9, 0.03), transparent 50%);
+    background-attachment: fixed;
+  }
+  .num, code { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: -0.01em; }
+
+  header.app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 28px 16px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+  header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 10px; }
+  header h1 .accent { color: var(--accent); font-style: italic; font-weight: 500; }
+  header h1::before { content: ''; display: inline-block; width: 8px; height: 24px; background: var(--accent); border-radius: 2px; margin-right: 4px; transform: translateY(3px); }
+  .stats { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .stat { background: var(--surface-2); padding: 6px 12px; border-radius: var(--r); border: 1px solid var(--border); display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+  .stat .label { color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; font-weight: 500; }
+  .stat .val { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; }
+  .stat.ok .val { color: var(--success); }
+  .stat.warn .val { color: var(--warn); }
+  .stat.bad .val { color: var(--danger); }
+
+  .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button, .btn { font-family: inherit; font-size: 13px; font-weight: 500; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 7px 14px; border-radius: var(--r); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  button:hover, .btn:hover { background: var(--surface-2); border-color: var(--text-2); }
+  button.primary, .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary:hover, .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button.danger { color: var(--danger); border-color: var(--danger-bg); }
+  button.danger:hover { background: var(--danger-bg); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.ghost { background: transparent; border: none; padding: 4px 8px; }
+  button.ghost:hover { background: var(--surface-2); }
+
+  .file-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .file-label input { display: none; }
+
+  .quick-add { background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+  .quick-add .label { font-family: 'Fraunces', serif; font-style: italic; font-size: 14px; font-weight: 500; color: var(--text-2); align-self: center; margin-right: 6px; }
+  .quick-add input { font-family: inherit; font-size: 13px; border: 1px solid var(--border-strong); background: var(--surface); padding: 8px 11px; border-radius: var(--r); color: var(--text); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .quick-add input.tk, .quick-add input.amt { font-family: 'IBM Plex Mono', monospace; }
+  .quick-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .quick-add input::placeholder { color: var(--text-muted); }
+  .quick-add .field-tk { width: 200px; }
+  .quick-add .field-amt { width: 150px; }
+  .quick-add .field-name { width: 200px; }
+  .quick-add .field-bank { width: 130px; }
+  .quick-add .field-label { width: 130px; }
+  .quick-add .hint { font-size: 11px; color: var(--text-muted); align-self: center; margin-left: auto; font-style: italic; }
+
+  main { padding: 22px 28px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .panel-head { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); background: var(--surface-2); display: flex; align-items: center; gap: 10px; }
+  .panel-head h2 { font-size: 16px; font-weight: 600; }
+  .panel-head .count { color: var(--text-muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; margin-left: 4px; }
+
+  .filters { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chip { font-size: 12px; padding: 5px 11px; border-radius: 100px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; color: var(--text-2); font-weight: 500; transition: all 0.15s; font-family: inherit; }
+  .chip:hover { background: var(--bg-warm); }
+  .chip.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .chip .n { margin-left: 4px; opacity: 0.6; font-family: 'IBM Plex Mono', monospace; }
+  .search-box { margin-left: auto; position: relative; }
+  .search-box input { padding: 6px 11px 6px 30px; border: 1px solid var(--border-strong); border-radius: var(--r); font-family: inherit; font-size: 12px; background: var(--surface); width: 200px; outline: none; color: var(--text); }
+  .search-box::before { content: '⌕'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; }
+  .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--surface-2); text-align: left; padding: 10px 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.matched { background: var(--success-bg); }
+  tbody tr.matched:hover { background: #d3eada; }
+  tbody tr.soft-mismatch { background: var(--warn-bg); }
+  tbody tr.soft-mismatch:hover { background: #f3dcb3; }
+  tbody tr.unmatched-row { background: transparent; }
+  tbody tr.highlight { background: #FFF8C7; box-shadow: inset 4px 0 0 var(--warn); }
+
+  td.col-stt { color: var(--text-muted); width: 36px; font-family: 'IBM Plex Mono', monospace; }
+  td.col-amt { text-align: right; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; font-weight: 500; }
+  td.col-tk { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  td.col-name { max-width: 220px; }
+  td.col-bank { font-size: 12px; color: var(--text-2); }
+  td.col-status { width: 110px; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+  .status-pill.ok { background: var(--success-bg); color: var(--success); }
+  .status-pill.soft { background: var(--warn-bg); color: var(--warn); }
+  .status-pill.miss { background: var(--bg-warm); color: var(--text-2); }
+  .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  td.col-match-info { font-size: 11px; color: var(--text-2); max-width: 180px; }
+  td.col-match-info code { font-size: 11px; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+  td .unlink { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 11px; border-radius: 3px; }
+  td .unlink:hover { background: var(--danger-bg); color: var(--danger); }
+
+  .empty { padding: 60px 24px; text-align: center; color: var(--text-muted); }
+  .empty .icon { font-size: 36px; opacity: 0.3; margin-bottom: 10px; font-family: 'Fraunces', serif; font-style: italic; }
+  .empty h3 { font-size: 17px; margin-bottom: 6px; color: var(--text-2); font-family: 'Fraunces', serif; font-style: italic; font-weight: 500; }
+  .empty p { font-size: 13px; max-width: 320px; margin: 0 auto; line-height: 1.55; }
+
+  .dntt-panel { position: sticky; top: 145px; max-height: calc(100vh - 165px); display: flex; flex-direction: column; }
+  .dntt-list { overflow-y: auto; flex: 1; min-height: 0; }
+  .dntt-item { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; transition: background 0.1s; }
+  .dntt-item:hover { background: var(--surface-2); }
+  .dntt-item.matched { background: var(--success-bg); }
+  .dntt-item.unmatched { background: var(--danger-bg); }
+  .dntt-item .body { flex: 1; min-width: 0; }
+  .dntt-item .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 2px; }
+  .dntt-item .lbl { font-weight: 600; font-size: 12px; color: var(--text); }
+  .dntt-item .amt { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 12px; white-space: nowrap; }
+  .dntt-item .name { font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
+  .dntt-item .meta { font-size: 11px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; display: flex; gap: 8px; }
+  .dntt-item .del { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 3px; font-size: 14px; }
+  .dntt-item .del:hover { background: var(--danger-bg); color: var(--danger); }
+
+  .modal-back { position: fixed; inset: 0; background: rgba(31, 35, 48, 0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; backdrop-filter: blur(2px); }
+  .modal-back.show { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--r-lg); width: 100%; max-width: 720px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+  .modal.wide { max-width: 1100px; }
+  .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-head h3 { font-size: 17px; font-weight: 600; }
+  .modal-body { padding: 18px 20px; overflow: auto; flex: 1; }
+  .modal-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--surface-2); }
+
+  textarea.paste-area { width: 100%; min-height: 220px; border: 1px solid var(--border-strong); border-radius: var(--r); padding: 10px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; resize: vertical; outline: none; color: var(--text); background: var(--surface); }
+  textarea.paste-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .help-text { font-size: 12px; color: var(--text-2); margin-bottom: 10px; line-height: 1.55; }
+  .help-text code { background: var(--bg-warm); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  .col-map { display: grid; grid-template-columns: 200px 1fr; gap: 10px 14px; align-items: center; }
+  .col-map label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .col-map select, .col-map input { padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--r); font-family: inherit; font-size: 13px; background: var(--surface); color: var(--text); }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--surface); padding: 10px 18px; border-radius: var(--r); font-size: 13px; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(10px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 200; max-width: 360px; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--danger); }
+  .toast.success { background: var(--success); }
+
+  .kbd { font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: var(--surface-2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 3px; color: var(--text-2); }
+
+  .splash { text-align: center; padding: 56px 24px; color: var(--text-2); }
+  .splash h2 { font-family: 'Fraunces', serif; font-size: 30px; color: var(--text); margin-bottom: 14px; letter-spacing: -0.02em; }
+  .splash h2 em { color: var(--accent); font-weight: 500; }
+  .splash p { max-width: 440px; margin: 0 auto 24px; line-height: 1.65; font-size: 14px; }
+  .splash .file-label.btn { padding: 10px 20px; font-size: 14px; }
+
+  details summary { cursor: pointer; padding: 10px 14px; font-size: 12px; color: var(--text-2); user-select: none; }
+  details[open] summary { border-bottom: 1px solid var(--border); }
+
+  .footer-note { text-align: center; color: var(--text-muted); font-size: 11px; padding: 24px; font-style: italic; font-family: 'Fraunces', serif; }
+  .lib-status {
+    background: var(--warn-bg);
+    color: #6b3a05;
+    padding: 10px 28px;
+    font-size: 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    display: none;
+  }
+  .lib-status.show { display: block; }
+  .lib-status.error { background: var(--danger-bg); color: var(--danger); }
+  .lib-status code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px; }
+
+  /* ----- OCR drop zone ----- */
+  .drop-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--r-lg);
+    padding: 40px 20px;
+    text-align: center;
+    transition: all 0.15s;
+    background: var(--surface-2);
+    margin-bottom: 14px;
+  }
+  .drop-zone.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop-zone p { color: var(--text-2); font-size: 13px; }
+  .drop-zone .icon { font-size: 32px; color: var(--text-muted); margin-bottom: 8px; font-family: 'Fraunces', serif; font-style: italic; }
+  .drop-zone .file-label { color: var(--accent); font-weight: 600; text-decoration: underline; }
+
+  /* ----- OCR queue ----- */
+  .ocr-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .ocr-card {
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .ocr-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .ocr-card .thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: var(--bg-warm); }
+  .ocr-card .info { padding: 8px 10px; font-size: 11px; }
+  .ocr-card .filename { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ocr-card .status { color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .ocr-card .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+  .ocr-card.queued .status-dot { background: var(--text-muted); }
+  .ocr-card.scanning .status-dot { background: var(--warn); animation: pulse 1.2s infinite; }
+  .ocr-card.done .status-dot { background: var(--success); }
+  .ocr-card.confirmed .status-dot { background: var(--accent); }
+  .ocr-card.error .status-dot { background: var(--danger); }
+  .ocr-card.confirmed::after {
+    content: '✓';
+    position: absolute;
+    top: 6px; right: 6px;
+    background: var(--success);
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    box-shadow: var(--shadow);
+  }
+  .ocr-card .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 0.2s;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ----- Review modal ----- */
+  .review-grid { display: grid; grid-template-columns: 1fr 360px; gap: 18px; height: 70vh; }
+  @media (max-width: 900px) { .review-grid { grid-template-columns: 1fr; height: auto; } }
+  .review-img-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    position: relative;
+  }
+  .review-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+  .review-side { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  .candidates-block { background: var(--surface-2); border-radius: var(--r); padding: 12px; border: 1px solid var(--border); }
+  .candidates-block h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin-bottom: 8px; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif; }
+  .candidates-block .candidates {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .cand-chip {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    padding: 5px 10px;
+    border-radius: var(--r);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .cand-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .cand-chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
+  .cand-chip .meta { font-size: 10px; opacity: 0.7; margin-left: 4px; font-family: 'IBM Plex Sans', sans-serif; }
+  .cand-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+  .form-grid { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; align-items: center; }
+  .form-grid label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .form-grid input {
+    padding: 7px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    width: 100%;
+  }
+  .form-grid input.mono { font-family: 'IBM Plex Mono', monospace; }
+  .form-grid input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .ocr-text {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    max-height: 160px;
+    overflow-y: auto;
+    color: var(--text-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .review-nav { display: flex; gap: 6px; align-items: center; margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+  .ocr-warning {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border-radius: 0 var(--r) var(--r) 0;
+    font-size: 12px;
+    color: #6b3a05;
+    line-height: 1.55;
+  }
+  .ocr-warning strong { color: #4a2700; }
+
+  .global-ocr-progress {
+    display: none;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: var(--r);
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .global-ocr-progress.show { display: inline-flex; }
+  .global-ocr-progress .spin {
+    width: 12px; height: 12px;
+    border: 2px solid var(--accent-soft);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ocr-debug {
+    background: #1F2330;
+    color: #C8D5C8;
+    padding: 8px 12px;
+    border-radius: var(--r);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    max-height: 110px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .ocr-debug .ts { color: #8A8C95; }
+  .ocr-debug .ok { color: #4ADE80; }
+  .ocr-debug .err { color: #FCA5A5; }
+  .ocr-debug .warn { color: #FCD34D; }
+
+  .ocr-card .manual-btn {
+    position: absolute;
+    bottom: 6px; right: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r);
+    padding: 3px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--text-2);
+    font-family: inherit;
+    box-shadow: var(--shadow-sm);
+  }
+  .ocr-card .manual-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .protocol-warn {
+    background: #FFF8DC;
+    border: 1px solid #E0C896;
+    color: #6B4F0A;
+    padding: 12px 14px;
+    border-radius: var(--r);
+    font-size: 12px;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .protocol-warn strong { color: #4A3505; }
+  .protocol-warn code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; }
+  .protocol-warn ol { margin: 6px 0 0 18px; padding: 0; }
+  .protocol-warn li { margin-bottom: 3px; }
+
+  /* Settings modal */
+  .settings-section { margin-bottom: 18px; }
+  .settings-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin-bottom: 8px; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif; }
+  .api-key-input { display: flex; gap: 6px; }
+  .api-key-input input {
+    flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    border: 1px solid var(--border-strong); padding: 8px 11px; border-radius: var(--r);
+    background: var(--surface); color: var(--text); outline: none;
+  }
+  .api-key-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .help-link {
+    font-size: 12px; color: var(--accent); text-decoration: none; display: inline-flex;
+    align-items: center; gap: 4px; margin-top: 6px;
+  }
+  .help-link:hover { text-decoration: underline; }
+
+  /* Multi-result table */
+  .results-info {
+    background: var(--accent-soft); color: var(--accent);
+    padding: 8px 12px; border-radius: var(--r);
+    font-size: 12px; font-weight: 500; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .results-empty {
+    background: var(--danger-bg); color: var(--danger);
+    padding: 10px 12px; border-radius: var(--r); font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  table.results-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
+  }
+  table.results-table th {
+    background: var(--surface-2); padding: 7px 8px; text-align: left;
+    font-weight: 600; color: var(--text-2); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.results-table td {
+    padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  table.results-table tr:last-child td { border-bottom: none; }
+  table.results-table input {
+    width: 100%; border: 1px solid transparent; padding: 4px 6px;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+    background: transparent; color: var(--text); outline: none;
+  }
+  table.results-table input:hover { border-color: var(--border); background: var(--surface-2); }
+  table.results-table input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 2px var(--accent-soft); }
+  table.results-table input.mono { font-family: 'IBM Plex Mono', monospace; }
+  table.results-table input.amt { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  table.results-table .row-actions { white-space: nowrap; text-align: center; width: 80px; }
+  table.results-table button.row-add {
+    background: var(--accent); color: white; border: none; padding: 4px 9px;
+    border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 500;
+  }
+  table.results-table button.row-add:hover { background: var(--accent-hover); }
+  table.results-table button.row-add.added { background: var(--success); cursor: default; }
+  table.results-table button.row-del {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; padding: 2px 6px; font-size: 13px; margin-left: 4px;
+  }
+  table.results-table button.row-del:hover { color: var(--danger); }
+
+  .col-tk-w { width: 130px; }
+  .col-amt-w { width: 110px; }
+  .col-bank-w { width: 110px; }
+  .col-label-w { width: 100px; }
+
+  /* Sticky scan banner on main view */
+  .scan-banner {
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: white;
+    padding: 12px 28px;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 65px;
+    z-index: 40;
+    box-shadow: 0 2px 8px rgba(14,94,92,0.2);
+  }
+  .scan-banner.show { display: flex; }
+  .scan-banner .spin-w {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .scan-banner .scan-stat {
+    background: rgba(255,255,255,0.2);
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .scan-banner .scan-msg { flex: 1; }
+  .scan-banner .scan-cancel {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 4px 11px;
+    border-radius: var(--r);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .scan-banner .scan-cancel:hover { background: rgba(255,255,255,0.25); }
+
+  /* Brief flash on newly matched LCT row */
+  @keyframes flashMatch {
+    0% { background: #FEF3C7; box-shadow: inset 4px 0 0 #F59E0B; }
+    70% { background: #FEF3C7; box-shadow: inset 4px 0 0 #F59E0B; }
+    100% { background: var(--success-bg); box-shadow: none; }
+  }
+  tbody tr.flash-match { animation: flashMatch 1.6s ease-out; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Đối chiếu <span class="accent">Lệnh chuyển × Đề nghị thanh toán</span></h1>
+  <div class="stats" id="statsBar">
+    <div class="stat"><span class="label">LCT</span><span class="val" id="statTotal">0</span></div>
+    <div class="stat ok"><span class="label">Khớp</span><span class="val" id="statOk">0</span></div>
+    <div class="stat warn"><span class="label">Lệch mềm</span><span class="val" id="statSoft">0</span></div>
+    <div class="stat bad"><span class="label">Chưa khớp</span><span class="val" id="statMiss">0</span></div>
+    <div class="stat"><span class="label">ĐNTT thừa</span><span class="val" id="statExtra">0</span></div>
+  </div>
+</header>
+
+<div class="lib-status" id="libStatus"></div>
+<div class="scan-banner" id="scanBanner">
+  <div class="spin-w"></div>
+  <span class="scan-msg" id="scanBannerMsg">Đang quét ảnh ĐNTT bằng AI…</span>
+  <span class="scan-stat" id="scanBannerStats">0/0 ảnh · 0 ĐNTT · 0 khớp</span>
+  <button class="scan-cancel" onclick="document.getElementById('btnOcr').click()">Mở khung quét</button>
+</div>
+
+<div class="toolbar">
+  <label class="file-label btn primary">
+    <span>↑</span> Tải file LCT (Excel)
+    <input type="file" id="fileInput" accept=".xls,.xlsx,.xlsm,.csv">
+  </label>
+  <button id="btnColMap" disabled>⚙ Cấu hình cột</button>
+  <button id="btnOcr" disabled>✨ Quét ảnh ĐNTT (Gemini AI)</button>
+  <button id="btnPaste" disabled>📋 Dán bảng ĐNTT</button>
+  <span id="ocrProgress" class="global-ocr-progress"><span class="spin"></span> <span id="ocrProgressText">Đang quét…</span></span>
+  <span style="flex: 1"></span>
+  <button id="btnSettings">⚙ Cài đặt</button>
+  <button id="btnExport" disabled>↓ Xuất Excel</button>
+  <button id="btnSaveJson">💾 Lưu</button>
+  <label class="file-label btn">
+    📂 Khôi phục
+    <input type="file" id="loadJsonInput" accept=".json">
+  </label>
+  <button id="btnReset" class="danger">⟲ Reset</button>
+</div>
+
+<div class="quick-add">
+  <span class="label">Thêm ĐNTT nhanh</span>
+  <input type="text" class="field-label" id="qaLabel" placeholder="Mã/nhãn (vd: Ảnh 5)" tabindex="1">
+  <input type="text" class="field-tk tk" id="qaTk" placeholder="Số tài khoản*" tabindex="2">
+  <input type="text" class="field-amt amt" id="qaAmt" placeholder="Số tiền*" tabindex="3">
+  <input type="text" class="field-name" id="qaName" placeholder="Tên CTK" tabindex="4">
+  <input type="text" class="field-bank" id="qaBank" placeholder="Ngân hàng" tabindex="5">
+  <button class="primary" id="qaAdd" tabindex="6">+ Thêm</button>
+  <span class="hint">Tab để chuyển ô, <span class="kbd">Enter</span> để thêm</span>
+</div>
+
+<main>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Lệnh chuyển tiền</h2>
+      <span class="count" id="lctCount">— chưa có dữ liệu</span>
+    </div>
+    <div class="filters" id="filtersRow" style="display:none">
+      <button class="chip active" data-f="all">Tất cả <span class="n" id="cAll">0</span></button>
+      <button class="chip" data-f="ok">Khớp hoàn toàn <span class="n" id="cOk">0</span></button>
+      <button class="chip" data-f="soft">Lệch mềm <span class="n" id="cSoft">0</span></button>
+      <button class="chip" data-f="miss">Chưa khớp <span class="n" id="cMiss">0</span></button>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Tìm tên / TK / mã GD…">
+      </div>
+    </div>
+    <div id="lctArea">
+      <div class="splash">
+        <h2>Bắt đầu bằng việc <em>tải file LCT</em></h2>
+        <p>Tool đọc file Excel xuất từ Internet Banking, sau đó dùng Google Gemini AI để đọc ảnh ĐNTT — kể cả chữ viết tay tiếng Việt.</p>
+        <label class="file-label btn primary">
+          <span>↑</span> Chọn file Excel
+          <input type="file" id="fileInputAlt" accept=".xls,.xlsx,.xlsm,.csv">
+        </label>
+        <p style="margin-top: 26px; font-size: 12px; color: var(--text-muted);">
+          File LCT xử lý cục bộ. Ảnh ĐNTT gửi đến Google Gemini API qua kết nối mã hóa HTTPS.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel dntt-panel">
+    <div class="panel-head">
+      <h2>Đề nghị thanh toán</h2>
+      <span class="count" id="dnttCount">0 mục</span>
+    </div>
+    <div class="filters">
+      <button class="chip active" data-df="all">Tất cả <span class="n" id="dcAll">0</span></button>
+      <button class="chip" data-df="matched">Đã khớp <span class="n" id="dcMatched">0</span></button>
+      <button class="chip" data-df="unmatched">Chưa khớp <span class="n" id="dcUnmatched">0</span></button>
+    </div>
+    <div class="dntt-list" id="dnttList">
+      <div class="empty">
+        <div class="icon">∅</div>
+        <h3>Chưa có ĐNTT nào</h3>
+        <p>Quét ảnh, dán bảng, hoặc gõ trực tiếp ở thanh "Thêm nhanh".</p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- Modal: OCR -->
+<div class="modal-back" id="modalOcr">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3>Quét ảnh ĐNTT bằng Google Gemini AI</h3>
+      <button class="ghost" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="apiKeyMissing" class="protocol-warn" style="display:none">
+        <strong>Cần cấu hình API key Google Gemini trước khi quét.</strong><br>
+        Bấm nút <strong>"⚙ Cài đặt"</strong> trên thanh công cụ để nhập API key — bạn sẽ được hướng dẫn lấy key miễn phí từ Google AI Studio.
+      </div>
+      <div class="ocr-warning" style="display:none" id="ocrInfo">
+        <strong>✨ Cách hoạt động:</strong> AI sẽ <strong>tự động</strong> trích xuất từng ĐNTT và thêm vào danh sách đối chiếu — bạn không cần xác nhận thủ công.
+        Nếu thấy AI đọc sai, bấm vào ảnh để xem/sửa lại.
+        <br><br>
+        <strong>⏱ Thời gian quét:</strong> Vì free tier của Gemini giới hạn 10-15 lần gọi/phút, tool tự giãn cách <strong>~6 giây/ảnh</strong> (Flash) hoặc <strong>~4.5 giây/ảnh</strong> (Flash-Lite) để tránh bị chặn.
+        Nếu cần quét nhiều ảnh nhanh hơn, đổi sang <em>"Gemini 2.5 Flash-Lite"</em> trong Cài đặt (15 lần/phút). Nếu bị 429, tool tự đợi và retry.
+      </div>
+      <div id="ocrDebugWrap" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <strong style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2)">Log quét</strong>
+          <button class="ghost" id="btnClearLog" style="font-size:11px;padding:2px 8px">Xóa log</button>
+        </div>
+        <div class="ocr-debug" id="ocrDebug"></div>
+      </div>
+      <div class="drop-zone" id="dropZone">
+        <div class="icon">⊕</div>
+        <p><label class="file-label"><strong>Chọn ảnh</strong><input type="file" id="ocrFiles" multiple accept="image/*"></label> hoặc kéo thả vào đây</p>
+        <p style="font-size: 11px; margin-top: 6px;">Hỗ trợ JPG, PNG, WebP. Có thể chọn nhiều ảnh cùng lúc. Mỗi ảnh có thể chứa 1 hoặc nhiều ĐNTT (vd: bảng danh sách).</p>
+      </div>
+      <div id="ocrQueue" class="ocr-queue"></div>
+    </div>
+    <div class="modal-foot">
+      <span style="font-size: 12px; color: var(--text-muted); margin-right: auto;" id="ocrSummary"></span>
+      <button data-close>Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Settings -->
+<div class="modal-back" id="modalSettings">
+  <div class="modal" style="max-width: 580px">
+    <div class="modal-head">
+      <h3>Cài đặt Gemini AI</h3>
+      <button class="ghost" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h4>API Key</h4>
+        <div class="api-key-input">
+          <input type="password" id="settingsApiKey" placeholder="AIzaSy... (dán API key của bạn vào đây)">
+          <button id="btnToggleKey" title="Hiện/ẩn key">👁</button>
+        </div>
+        <p class="help-text" style="margin-top: 8px; font-size: 11px;">
+          Key được lưu cục bộ trong trình duyệt (localStorage), không bao giờ gửi đi đâu khác ngoài Google API.
+        </p>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">
+          → Lấy API key miễn phí tại Google AI Studio
+        </a>
+        <p class="help-text" style="margin-top: 10px;">
+          Hướng dẫn nhanh:
+          <ol style="margin: 4px 0 0 20px; padding: 0;">
+            <li>Mở link trên, đăng nhập bằng tài khoản Google</li>
+            <li>Bấm "Create API key" → Copy chuỗi bắt đầu bằng <code>AIzaSy...</code></li>
+            <li>Dán vào ô trên và bấm Lưu</li>
+          </ol>
+        </p>
+      </div>
+      <div class="settings-section">
+        <h4>Model AI</h4>
+        <select id="settingsModel" style="width: 100%; padding: 8px 11px; border: 1px solid var(--border-strong); border-radius: var(--r); font-family: inherit; font-size: 13px; background: var(--surface); color: var(--text);">
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash — cân bằng (khuyến nghị)</option>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite — nhanh, rẻ</option>
+          <option value="gemini-3-flash">Gemini 3 Flash — mới nhất, chính xác hơn</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro — chính xác nhất, chậm hơn</option>
+        </select>
+        <p class="help-text" style="margin-top: 6px;">
+          Free tier hiện có cho các model Flash. Pro models có thể yêu cầu billing tài khoản.
+        </p>
+      </div>
+      <div class="settings-section">
+        <h4>Test kết nối</h4>
+        <button id="btnTestApi">Kiểm tra API key</button>
+        <span id="testResult" style="margin-left: 10px; font-size: 12px;"></span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button data-close>Hủy</button>
+      <button class="primary" id="btnSaveSettings">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Review OCR -->
+<div class="modal-back" id="modalReview">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3 id="reviewTitle">Xác nhận ĐNTT</h3>
+      <div class="review-nav">
+        <span id="reviewIdx"></span>
+        <button class="ghost" id="reviewPrev">← Trước</button>
+        <button class="ghost" id="reviewNext">Sau →</button>
+        <button class="ghost" data-close>✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="review-grid">
+        <div class="review-img-wrap">
+          <img id="reviewImg" src="" alt="ĐNTT">
+        </div>
+        <div class="review-side">
+          <div id="resultsInfo"></div>
+          <div id="resultsContainer"></div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button id="btnAddRow">+ Thêm dòng trống</button>
+            <button id="btnRescan" title="Quét lại bằng AI">↻ Quét lại</button>
+          </div>
+          <details style="margin-top: 12px;">
+            <summary>Xem text/JSON thô từ AI</summary>
+            <div class="ocr-text" id="ocrTextRaw"></div>
+          </details>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span style="margin-right: auto; font-size: 12px; color: var(--text-muted);" id="reviewStatus"></span>
+      <button id="reviewSkip">Bỏ qua ảnh này</button>
+      <button class="primary" id="reviewConfirmAll">✓ Thêm tất cả vào ĐNTT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Paste -->
+<div class="modal-back" id="modalPaste">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Dán bảng ĐNTT từ Excel/CSV</h3>
+      <button class="ghost" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="help-text">Dán bảng có các cột theo thứ tự: <code>Nhãn | Tên CTK | TK | Ngân hàng | Số tiền | Ghi chú</code> — phân tách bằng <strong>Tab</strong> hoặc <strong>dấu phẩy</strong>. Chỉ TK và Số tiền là bắt buộc.</p>
+      <textarea class="paste-area" id="pasteArea" placeholder="Ảnh 1&#9;Cty Điện lực Ba Đình&#9;184779366&#9;VPB&#9;19961173"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button data-close>Hủy</button>
+      <button class="primary" id="btnPasteSubmit">Thêm vào danh sách</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Column mapping -->
+<div class="modal-back" id="modalColMap">
+  <div class="modal" style="max-width: 560px;">
+    <div class="modal-head">
+      <h3>Cấu hình cột của file LCT</h3>
+      <button class="ghost" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="help-text">Mỗi cột đã được tự động phát hiện theo tên tiêu đề. Nếu file của bạn cấu trúc khác, hãy điều chỉnh lại.</p>
+      <div class="col-map">
+        <label>Hàng tiêu đề</label><select id="cmHeaderRow"></select>
+        <label>Tên người thụ hưởng (mềm)</label><select id="cmName"></select>
+        <label>TK người thụ hưởng <strong style="color:var(--accent)">(cứng)</strong></label><select id="cmAcc"></select>
+        <label>NH người thụ hưởng (mềm)</label><select id="cmBank"></select>
+        <label>Số tiền chuyển <strong style="color:var(--accent)">(cứng)</strong></label><select id="cmAmt"></select>
+        <label>Mã GD (tùy chọn)</label><select id="cmCode"></select>
+        <label>Nội dung chuyển (tùy chọn)</label><select id="cmContent"></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button data-close>Hủy</button>
+      <button class="primary" id="btnColMapSave">Áp dụng</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-note">Tool offline — lưu file HTML này về máy và mở bằng trình duyệt. Lần đầu cần internet để tải SheetJS + Tesseract.js, sau đó cache offline.</div>
+
+<script>
+'use strict';
+
+// ============= STATE =============
+const LS_KEY = 'recon_lct_dntt_v2';
+const SETTINGS_KEY = 'recon_settings_v1';
+let state = {
+  lcts: [],
+  dntts: [],
+  matches: {},
+  filter: 'all',
+  dnttFilter: 'all',
+  search: '',
+  rawRows: null,
+  colMap: null,
+  fileName: '',
+};
+
+let settings = {
+  apiKey: '',
+  model: 'gemini-2.5-flash',
+};
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem(SETTINGS_KEY);
+    if (s) Object.assign(settings, JSON.parse(s));
+  } catch (e) { console.warn(e); }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { console.warn(e); }
+}
+
+// OCR state (not persisted - images/buffers too big)
+let ocrState = {
+  files: [],
+  reviewIdx: 0,
+  scanning: false,
+};
+
+// ============= UTILS =============
+function $(s) { return document.querySelector(s); }
+function $$(s) { return Array.from(document.querySelectorAll(s)); }
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === 'className') e.className = v;
+    else if (k === 'onclick') e.onclick = v;
+    else if (k.startsWith('data-')) e.setAttribute(k, v);
+    else e[k] = v;
+  }
+  for (const c of (Array.isArray(children) ? children : [children])) {
+    if (c == null) continue;
+    e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function fmtAmt(n) { if (n == null || n === '' || isNaN(n)) return ''; return Number(n).toLocaleString('vi-VN'); }
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function normText(s) {
+  if (s == null) return '';
+  let t = String(s).replace(/Đ/g, 'D').replace(/đ/g, 'D');
+  t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return t.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+function normCompany(s) {
+  let n = normText(s);
+  n = n.replace(/CONGTYTNHH|CTYTNHH/g, 'CTTNHH');
+  n = n.replace(/CONGTYCOPHAN|CTYCP|CTYCOPHAN/g, 'CTCP');
+  n = n.replace(/CONGTY|CTY/g, 'CT');
+  n = n.replace(/HANOI/g, 'HN').replace(/HOCHIMINH/g, 'HCM').replace(/THANHPHO/g, 'TP');
+  n = n.replace(/VIETNAM/g, 'VN');
+  return n;
+}
+function normAcc(s) {
+  return String(s ?? '').replace(/\D/g, '').replace(/^0+/, '');
+}
+function isSameName(a, b) {
+  if (!a || !b) return false;
+  let n1 = normText(a), n2 = normText(b);
+  if (n1 === n2) return true;
+  n1 = normText(String(a).split('_')[0]);
+  n2 = normText(String(b).split('_')[0]);
+  if (n1 === n2 || n1.includes(n2) || n2.includes(n1)) return true;
+  const c1 = normCompany(a), c2 = normCompany(b);
+  if (c1 === c2 || c1.includes(c2) || c2.includes(c1)) return true;
+  return false;
+}
+const BANK_ALIASES = {
+  VPB:['VPBANK','VPB','NHVIETNAMTHINHVUONG'], VCB:['VIETCOMBANK','VCB','NHNGOAITHUONG','NGOAITHUONG'],
+  CTG:['VIETINBANK','CTG','NHCONGTHUONG','CONGTHUONG'], BIDV:['BIDV','NHDAUTUVAPHATTRIEN','DAUTUVAPHATTRIEN'],
+  MB:['MBBANK','MB','NHQUANDOI','QUANDOI'], TCB:['TECHCOMBANK','TCB','NHKYTHUONG','KYTHUONG'],
+  TPB:['TPBANK','TPB','NHTIENPHONG','TIENPHONG'], ACB:['ACB','NHACHAU','ACHAU'],
+  BVB:['BVBANK','BVB','BANVIET'], PVCB:['PVCOMBANK','PVCB','NHDAICHUNG','DAICHUNG','PVCOM'],
+  CITI:['CITIBANK','CITI'], SHB:['SHB','SAIGONHANOI'], STB:['SACOMBANK','STB','THUONGTIN'],
+  HDB:['HDBANK','HDB'], VIB:['VIB','QUOCTE'], AGRI:['AGRIBANK','AGRI','NHNNVN'],
+  OCB:['OCB','PHUONGDONG'],
+};
+function isSameBank(a, b) {
+  if (!a || !b) return true;
+  const n1 = normText(a), n2 = normText(b);
+  if (n1 === n2) return true;
+  for (const aliases of Object.values(BANK_ALIASES)) {
+    const norm = aliases.map(normText);
+    if (norm.some(x => n1.includes(x)) && norm.some(x => n2.includes(x))) return true;
+  }
+  return false;
+}
+function parseAmount(s) {
+  if (s == null || s === '') return null;
+  if (typeof s === 'number') return s;
+  let str = String(s).replace(/VND|VNĐ|đ|\s/gi, '').trim();
+  if (str.includes('.') && str.includes(',')) {
+    if (str.lastIndexOf(',') > str.lastIndexOf('.')) str = str.replace(/\./g,'').replace(',','.');
+    else str = str.replace(/,/g,'');
+  } else {
+    const dots = (str.match(/\./g)||[]).length;
+    const commas = (str.match(/,/g)||[]).length;
+    if (dots > 1) str = str.replace(/\./g,'');
+    else if (commas > 1) str = str.replace(/,/g,'');
+    else if (commas === 1 && /,\d{3}\b/.test(str)) str = str.replace(/,/g,'');
+    else if (dots === 1 && /\.\d{3}\b/.test(str)) str = str.replace(/\./g,'');
+    else str = str.replace(',','.');
+  }
+  const n = parseFloat(str);
+  return isNaN(n) ? null : n;
+}
+
+function readFile(file, asArray=true) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    if (asArray) r.readAsArrayBuffer(file);
+    else r.readAsText(file);
+  });
+}
+function readFileDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ============= LCT FILE =============
+async function loadLctFile(file) {
+  // Library check first
+  if (typeof XLSX === 'undefined') {
+    showToast('⚠ Thư viện đọc Excel (SheetJS) chưa tải xong. Kiểm tra mạng và thử lại.', 'error');
+    console.error('XLSX library not loaded');
+    return;
+  }
+  try {
+    console.log('[LCT] Đang đọc file:', file.name, 'size:', file.size);
+    const buf = await readFile(file);
+    const wb = XLSX.read(buf, { type: 'array' });
+    console.log('[LCT] Sheets:', wb.SheetNames);
+
+    // Smart sheet selection: find the sheet that actually contains LCT data
+    let bestSheet = null;
+    let bestRows = null;
+    let bestScore = -1;
+    for (const name of wb.SheetNames) {
+      const sheet = wb.Sheets[name];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+      if (!rows || rows.length === 0) continue;
+      // Score: does header look like LCT? Look in first 15 rows.
+      let score = 0;
+      for (let i = 0; i < Math.min(15, rows.length); i++) {
+        const r = (rows[i] || []).map(c => normText(c));
+        if (r.some(c => c.includes('TKNGUOITHU') || c.includes('TAIKHOANNGUOITHU'))) score += 10;
+        if (r.some(c => c.includes('SOTIENCHUYEN') || c.includes('SOTIEN'))) score += 10;
+        if (r.some(c => c.includes('TENNGUOITHU'))) score += 5;
+        if (r.some(c => c.includes('NHNGUOITHU'))) score += 5;
+        if (r.some(c => c.includes('MAGD'))) score += 3;
+      }
+      // Also reward by row count (data presence)
+      score += Math.min(rows.length, 50) / 10;
+      console.log(`[LCT] Sheet "${name}": ${rows.length} rows, score=${score.toFixed(1)}`);
+      if (score > bestScore) {
+        bestScore = score;
+        bestSheet = name;
+        bestRows = rows;
+      }
+    }
+
+    if (!bestRows || bestRows.length === 0) {
+      showToast('File không có sheet nào chứa dữ liệu. Kiểm tra lại file.', 'error');
+      return;
+    }
+    if (bestScore < 5) {
+      // Headers don't look like LCT - warn but still try
+      console.warn('[LCT] Sheet tốt nhất nhưng không nhận được header chuẩn. Score:', bestScore);
+    }
+
+    state.rawRows = bestRows;
+    state.fileName = file.name + (wb.SheetNames.length > 1 ? ` [sheet: ${bestSheet}]` : '');
+    autoDetectColumns();
+    parseLcts();
+
+    if (state.lcts.length === 0) {
+      showToast(`Đã đọc sheet "${bestSheet}" nhưng không tìm thấy dòng dữ liệu nào. Bấm "⚙ Cấu hình cột" để chọn lại.`, 'error');
+    } else {
+      showToast(`Đã tải ${state.lcts.length} lệnh chuyển từ sheet "${bestSheet}"`, 'success');
+    }
+    saveState();
+    render();
+  } catch (e) {
+    console.error('[LCT] Lỗi đọc file:', e);
+    showToast('Không đọc được file: ' + (e.message || 'lỗi không rõ'), 'error');
+  }
+}
+function autoDetectColumns() {
+  const rows = state.rawRows;
+  if (!rows) return;
+  let hdrRow = -1;
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
+    const r = (rows[i] || []).map(c => normText(c));
+    const hasAcc = r.some(c => c.includes('TKNGUOITHU') || c.includes('TAIKHOANNGUOITHU'));
+    const hasAmt = r.some(c => c.includes('SOTIENCHUYEN') || c.includes('SOTIEN'));
+    if (hasAcc && hasAmt) { hdrRow = i; break; }
+  }
+  if (hdrRow === -1) hdrRow = 2;
+  const headers = (rows[hdrRow] || []).map(c => normText(c));
+  function findCol(...keys) {
+    for (let i = 0; i < headers.length; i++)
+      for (const k of keys)
+        if (headers[i].includes(normText(k))) return i;
+    return -1;
+  }
+  state.colMap = {
+    headerRow: hdrRow,
+    name: findCol('Tên người thụ hưởng', 'tennguoithuhuong'),
+    acc: findCol('TK người thụ hưởng', 'tknguoithuhuong'),
+    bank: findCol('NH người thụ hưởng', 'nhnguoithuhuong'),
+    amt: findCol('Số tiền chuyển', 'sotienchuyen', 'sotien'),
+    code: findCol('Mã GD', 'magd'),
+    content: findCol('Nội dung chuyển', 'noidungchuyen', 'noidung'),
+  };
+}
+function parseLcts() {
+  const { rawRows: rows, colMap: cm } = state;
+  if (!rows || !cm) return;
+  state.lcts = [];
+  for (let i = cm.headerRow + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+    const acc = cm.acc >= 0 ? r[cm.acc] : null;
+    const amt = parseAmount(cm.amt >= 0 ? r[cm.amt] : null);
+    if (!acc && !amt) continue;
+    state.lcts.push({
+      id: 'L' + (i - cm.headerRow),
+      stt: i - cm.headerRow,
+      name: cm.name >= 0 ? (r[cm.name] ?? '') : '',
+      acc: cm.acc >= 0 ? String(r[cm.acc] ?? '').replace(/^'/, '') : '',
+      bank: cm.bank >= 0 ? (r[cm.bank] ?? '') : '',
+      amt,
+      code: cm.code >= 0 ? String(r[cm.code] ?? '').replace(/^'/, '') : '',
+      content: cm.content >= 0 ? (r[cm.content] ?? '') : '',
+    });
+  }
+}
+
+// ============= MATCHING =============
+function recomputeMatches() {
+  state.matches = {};
+  const usedDntt = new Set();
+  for (const lct of state.lcts) {
+    const accL = normAcc(lct.acc);
+    if (!accL) continue;
+    const candidates = state.dntts.filter(d =>
+      !usedDntt.has(d.id) &&
+      normAcc(d.acc) === accL &&
+      Math.abs((d.amt ?? -1) - (lct.amt ?? -2)) < 1
+    );
+    if (candidates.length > 0) {
+      const best = candidates.find(d => isSameName(lct.name, d.name)) || candidates[0];
+      state.matches[lct.id] = best.id;
+      usedDntt.add(best.id);
+    }
+  }
+}
+function getStatus(lct) {
+  const dnttId = state.matches[lct.id];
+  if (!dnttId) return { kind: 'miss' };
+  const dntt = state.dntts.find(d => d.id === dnttId);
+  if (!dntt) return { kind: 'miss' };
+  const nameOk = !lct.name || !dntt.name || isSameName(lct.name, dntt.name);
+  const bankOk = isSameBank(lct.bank, dntt.bank);
+  if (nameOk && bankOk) return { kind: 'ok', dntt };
+  const issues = [];
+  if (!nameOk) issues.push('TÊN');
+  if (!bankOk) issues.push('NH');
+  return { kind: 'soft', dntt, issues };
+}
+
+// ============= ĐNTT OPS =============
+function addDntt({ label='', name='', acc, bank='', amt, note='', source='manual', srcImageId=null, srcRowIdx=null }) {
+  acc = String(acc ?? '').trim();
+  amt = parseAmount(amt);
+  if (!acc) return { ok: false, msg: 'Thiếu số tài khoản' };
+  if (amt == null) return { ok: false, msg: 'Số tiền không hợp lệ' };
+  const d = { id: 'D' + uid(), label: label.trim(), name: name.trim(), acc: acc.replace(/^'/, ''), bank: bank.trim(), amt, note, source, srcImageId, srcRowIdx };
+  state.dntts.push(d);
+  recomputeMatches();
+  saveState(); render();
+  return { ok: true, d };
+}
+function deleteDntt(id) {
+  state.dntts = state.dntts.filter(d => d.id !== id);
+  recomputeMatches(); saveState(); render();
+}
+function unlinkLct(lctId) { delete state.matches[lctId]; saveState(); render(); }
+
+// ============= PERSIST =============
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      lcts: state.lcts, dntts: state.dntts, matches: state.matches,
+      colMap: state.colMap, fileName: state.fileName, rawRows: state.rawRows,
+    }));
+  } catch (e) { console.warn('Save failed', e); }
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (!s) return;
+    Object.assign(state, JSON.parse(s));
+    if (state.lcts.length === 0 && state.rawRows && state.colMap) parseLcts();
+    recomputeMatches();
+  } catch (e) { console.warn('Load failed', e); }
+}
+
+// ============= GEMINI AI =============
+const GEMINI_PROMPT = `Bạn là trợ lý OCR. Tôi gửi ảnh chụp tài liệu kế toán tiếng Việt — có thể là Giấy đề nghị thanh toán, Giấy đề nghị tạm ứng, Đơn xin hoàn tiền, Yêu cầu thanh toán, hoặc Bảng danh sách nhận thưởng/booking.
+
+Hãy trích xuất TẤT CẢ các đề nghị thanh toán/chi trả có trong ảnh, mỗi mục một phần tử trong mảng JSON.
+
+Cấu trúc mỗi phần tử:
+- "label": chuỗi, nhãn ngắn để nhận diện — ưu tiên tên người nhận hoặc người đề nghị (5-30 ký tự)
+- "name": chuỗi, tên CHỦ TÀI KHOẢN (CTK) nhận tiền - giữ nguyên dấu tiếng Việt và viết hoa/thường như trên ảnh
+- "tk": chuỗi, số tài khoản ngân hàng — CHỈ CHỮ SỐ, không có dấu phân cách, dấu cách hay ký tự khác
+- "bank": chuỗi, tên ngân hàng (chuẩn hóa: "VPBank", "Vietcombank", "MB Bank", "BIDV", "TPBank", "Techcombank", "VietinBank", "BVBank", "ACB", "PVcomBank", "Sacombank", "Agribank", v.v.)
+- "amt": SỐ NGUYÊN, số tiền VND, không có dấu phân cách
+- "note": chuỗi, nội dung thanh toán ngắn gọn (tối đa 80 ký tự)
+
+QUAN TRỌNG:
+1. Nếu ảnh chứa BẢNG nhiều dòng (vd danh sách nhiều người nhận thưởng/booking), trả về MỖI DÒNG là MỘT phần tử trong mảng — đầy đủ tất cả các dòng có trên ảnh.
+2. Nếu là Giấy đề nghị đơn lẻ, trả về mảng có 1 phần tử.
+3. Đọc kỹ chữ VIẾT TAY. Nếu có cả số viết và chữ viết của số tiền (ví dụ "19.961.173" và "Mười chín triệu chín trăm sáu mươi mốt nghìn..."), đối chiếu cả hai để xác minh.
+4. Số tài khoản: chỉ giữ chữ số. Ví dụ "0948 486 965" → "0948486965".
+5. Nếu trường nào không xác định được rõ, để null.
+6. CHỈ trả về JSON array hợp lệ — không markdown, không giải thích, không text ngoài JSON.
+
+Ví dụ output cho 1 ảnh có 2 dòng:
+[
+  {"label":"Phạm Thuận","name":"Cty Điện lực Ba Đình","tk":"184779366","bank":"VPBank","amt":19961173,"note":"Tiền điện T4.2026"},
+  {"label":"Đặng Hiếu","name":"Đặng Quang Hiếu","tk":"0948486965","bank":"VPBank","amt":4076179,"note":"Công tác phí Thái Lan"}
+]`;
+
+// Resize image to reduce upload size and API cost
+async function resizeImage(dataUrl, maxDim = 1800, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+async function callGemini(dataUrl, apiKey, model, retryCount = 0) {
+  const m = dataUrl.match(/^data:(image\/[\w+]+);base64,(.+)$/);
+  if (!m) throw new Error('Định dạng ảnh không hợp lệ');
+  const [, mimeType, b64] = m;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const body = {
+    contents: [{
+      parts: [
+        { text: GEMINI_PROMPT },
+        { inline_data: { mime_type: mimeType, data: b64 } }
+      ]
+    }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.1,
+      maxOutputTokens: 8192,
+    }
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    let msg = `HTTP ${res.status}`;
+    let retryDelaySec = 0;
+    try {
+      const j = JSON.parse(errText);
+      msg = (j.error && j.error.message) || msg;
+      // Check if Gemini suggested a retry delay (in details)
+      if (j.error && j.error.details) {
+        for (const detail of j.error.details) {
+          if (detail['@type'] && detail['@type'].includes('RetryInfo') && detail.retryDelay) {
+            const sec = parseInt(detail.retryDelay);
+            if (!isNaN(sec)) retryDelaySec = sec;
+          }
+        }
+      }
+    } catch {}
+
+    // ★ AUTO-RETRY on 429 rate limit (up to 3 times with backoff)
+    if (res.status === 429 && retryCount < 3) {
+      const waitSec = retryDelaySec || (15 * (retryCount + 1));  // 15s, 30s, 45s
+      ocrLog(`⏸ Rate limit (429). Đợi ${waitSec}s rồi thử lại lần ${retryCount + 1}/3…`, 'warn');
+      // Update banner so user sees what's happening
+      const banner = $('#scanBannerMsg');
+      if (banner) banner.textContent = `⏸ Tạm dừng ${waitSec}s do giới hạn API…`;
+      await new Promise(r => setTimeout(r, waitSec * 1000));
+      return callGemini(dataUrl, apiKey, model, retryCount + 1);
+    }
+
+    if (res.status === 400 && /API.?key.*not.*valid/i.test(msg)) msg = 'API key không hợp lệ. Kiểm tra lại trong Cài đặt.';
+    else if (res.status === 429) msg = `Vượt quota free tier (đã retry ${retryCount} lần). Đợi vài phút rồi thử lại, hoặc đổi sang model "Flash-Lite" trong Cài đặt (RPM cao hơn).`;
+    else if (res.status === 403) msg = 'API key bị từ chối. Kiểm tra quyền hoặc thử model khác.';
+    else if (res.status === 404) msg = `Không tìm thấy model "${model}". Đổi model trong Cài đặt.`;
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+  if (!text) {
+    if (data.candidates && data.candidates[0] && data.candidates[0].finishReason) {
+      throw new Error('AI từ chối phản hồi (' + data.candidates[0].finishReason + ')');
+    }
+    throw new Error('Phản hồi AI trống');
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    const cleaned = text.replace(/^[^\[\{]*/, '').replace(/[^\]\}]*$/, '');
+    parsed = JSON.parse(cleaned);
+  }
+  if (!Array.isArray(parsed)) parsed = [parsed];
+  return parsed.map(item => ({
+    label: (item.label || '').toString().trim(),
+    name: (item.name || '').toString().trim(),
+    tk: ((item.tk == null ? '' : item.tk).toString()).replace(/\D/g, ''),
+    bank: (item.bank || '').toString().trim(),
+    amt: item.amt == null ? null : (typeof item.amt === 'number' ? item.amt : parseAmount(item.amt)),
+    note: (item.note || '').toString().trim(),
+  })).filter(it => it.tk || it.amt != null || it.name);
+}
+
+// ============= OCR FLOW =============
+function ocrLog(msg, kind='') {
+  const d = $('#ocrDebug');
+  if (!d) return;
+  const wrap = $('#ocrDebugWrap');
+  if (wrap) wrap.style.display = 'block';
+  const ts = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+  const line = document.createElement('div');
+  const tsSpan = document.createElement('span');
+  tsSpan.className = 'ts'; tsSpan.textContent = ts + ' ';
+  const msgSpan = document.createElement('span');
+  msgSpan.className = kind; msgSpan.textContent = msg;
+  line.appendChild(tsSpan); line.appendChild(msgSpan);
+  d.appendChild(line);
+  d.scrollTop = d.scrollHeight;
+  console.log('[OCR]', msg);
+}
+
+function showScanBanner() {
+  const b = $('#scanBanner');
+  if (b) b.classList.add('show');
+}
+function hideScanBanner() {
+  const b = $('#scanBanner');
+  if (b) b.classList.remove('show');
+}
+function updateScanBanner(done, total) {
+  const stats = $('#scanBannerStats');
+  if (!stats) return;
+  const dnttCount = state.dntts.filter(d => d.source === 'gemini' || d.source === 'gemini-edit').length;
+  const matchedCount = Object.keys(state.matches).length;
+  stats.textContent = `${done}/${total} ảnh · ${dnttCount} ĐNTT · ${matchedCount} khớp`;
+  $('#scanBannerMsg').textContent = done === total
+    ? `✓ Hoàn tất quét ${total} ảnh`
+    : `Đang quét ${done + 1}/${total}…`;
+}
+
+async function scanImage(item) {
+  item.status = 'scanning'; item.progress = 0;
+  renderOcrQueue();
+  showOcrProgress(`Đang quét ${item.name}…`);
+  ocrLog(`Bắt đầu quét: ${item.name}`);
+  try {
+    if (!settings.apiKey) throw new Error('Chưa có API key');
+    const resized = await resizeImage(item.dataUrl);
+    item.progress = 0.3;
+    renderOcrQueue();
+    const results = await callGemini(resized, settings.apiKey, settings.model || 'gemini-2.5-flash');
+    item.results = results;
+    item.rawText = JSON.stringify(results, null, 2);
+    item.status = 'done';
+    item.progress = 1;
+
+    // ★ Track LCTs that get newly matched so we can flash them
+    const matchesBefore = new Set(Object.keys(state.matches));
+
+    // ★ AUTO-ADD all results as DNTTs immediately
+    item.addedDnttIds = [];
+    let added = 0, failed = 0, failedReasons = [];
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const res = addDntt({
+        label: r.label, name: r.name, acc: r.tk, bank: r.bank, amt: r.amt, note: r.note,
+        source: 'gemini', srcImageId: item.id, srcRowIdx: i,
+      });
+      if (res.ok) { item.addedDnttIds.push(i); added++; }
+      else { failed++; failedReasons.push(`#${i+1}: ${res.msg} (${r.name || r.label || '?'})`); }
+    }
+
+    // Flash newly matched LCTs
+    setTimeout(() => {
+      const matchesAfter = Object.keys(state.matches);
+      const newMatches = matchesAfter.filter(id => !matchesBefore.has(id));
+      newMatches.forEach(lctId => {
+        const row = document.querySelector(`tr[data-lct-id="${lctId}"]`);
+        if (row) row.classList.add('flash-match');
+      });
+    }, 50);
+
+    ocrLog(`✓ ${item.name}: ${results.length} mục → đã tự thêm ${added} ĐNTT${failed ? `, bỏ ${failed} (thiếu TK/số tiền)` : ''}`, 'ok');
+    if (failedReasons.length) failedReasons.forEach(r => ocrLog('  ' + r, 'warn'));
+  } catch (e) {
+    console.error('[OCR] Scan error:', e);
+    ocrLog(`✗ ${item.name}: ${e.message || e}`, 'err');
+    item.status = 'error';
+    item.errorMsg = e.message || 'Lỗi khi gọi AI';
+    item.results = [];
+    item.rawText = '';
+  }
+  renderOcrQueue();
+  updateOcrSummary();
+}
+
+async function scanQueue() {
+  if (ocrState.scanning) {
+    ocrLog('scanQueue đã đang chạy, bỏ qua', 'warn');
+    return;
+  }
+  ocrState.scanning = true;
+  const total = ocrState.files.filter(f => f.status === 'queued').length;
+  if (total === 0) { ocrState.scanning = false; return; }
+
+  // Delay between scans based on model (Gemini free tier RPM limits, May 2026):
+  // - 2.5 Flash: 10 RPM → 6.5s/call
+  // - 2.5 Flash-Lite: 15 RPM → 4.5s/call
+  // - 3 Flash: ~10 RPM → 6.5s/call
+  // - 2.5 Pro: 5 RPM → 13s/call
+  const model = settings.model || 'gemini-2.5-flash';
+  const delayMs = model.includes('lite') ? 4500
+    : model.includes('pro') ? 13000
+    : 6500;
+
+  const dnttBefore = state.dntts.length;
+  const matchesBefore = Object.keys(state.matches).length;
+
+  ocrLog(`Bắt đầu quét ${total} ảnh — model: ${model} — giãn cách ${delayMs/1000}s/ảnh để tránh rate limit`);
+  showOcrProgress(`Đang quét 0/${total}…`);
+  showScanBanner();
+  updateScanBanner(0, total);
+  let done = 0;
+  try {
+    for (const item of ocrState.files) {
+      if (item.status === 'queued') {
+        await scanImage(item);
+        done++;
+        showOcrProgress(`Đang quét ${done}/${total}…`);
+        updateScanBanner(done, total);
+        // Only delay if there are more images to scan
+        if (done < total) {
+          await new Promise(r => setTimeout(r, delayMs));
+        }
+      }
+    }
+  } catch (e) {
+    ocrLog('Lỗi: ' + (e.message || e), 'err');
+  } finally {
+    ocrState.scanning = false;
+    hideOcrProgress();
+
+    // Summary
+    const dnttAdded = state.dntts.length - dnttBefore;
+    const newMatches = Object.keys(state.matches).length - matchesBefore;
+    ocrLog(`✓ Hoàn tất — đã thêm ${dnttAdded} ĐNTT, đối chiếu được ${newMatches} lệnh chuyển`, 'ok');
+
+    // Show summary banner for 3 seconds, then hide
+    updateScanBanner(total, total);
+    $('#scanBannerMsg').textContent = `✓ Hoàn tất ${total} ảnh — thêm ${dnttAdded} ĐNTT, đối chiếu ${newMatches} lệnh`;
+    setTimeout(hideScanBanner, 4000);
+
+    // Big toast
+    showToast(`✓ Quét xong ${total} ảnh: thêm ${dnttAdded} ĐNTT, đối chiếu ${newMatches} lệnh chuyển`, 'success');
+  }
+}
+
+// ============= OCR EXTRACTION (legacy - kept for reference, no longer used with Gemini) =============
+// Gemini returns structured data directly, so no candidate extraction needed.
+
+// ============= OCR UI =============
+async function handleOcrFiles(fileList) {
+  if (!settings.apiKey) {
+    showToast('⚠ Chưa có API key. Bấm "⚙ Cài đặt" để nhập.', 'error');
+    $('#apiKeyMissing').style.display = 'block';
+    return;
+  }
+  const all = Array.from(fileList);
+  console.log('[OCR] Files dropped/selected:', all.length, all.map(f => `${f.name} (${f.type})`));
+  const isImage = f => {
+    if (f.type && f.type.startsWith('image/')) return true;
+    return /\.(jpe?g|png|webp|bmp|gif|tiff?)$/i.test(f.name);
+  };
+  const files = all.filter(isImage);
+  const rejected = all.length - files.length;
+  if (files.length === 0) {
+    showToast(`Không có ảnh hợp lệ trong ${all.length} file đã chọn.`, 'error');
+    return;
+  }
+  if (rejected > 0) showToast(`Bỏ qua ${rejected} file không phải ảnh.`, '');
+  for (const f of files) {
+    try {
+      const dataUrl = await readFileDataUrl(f);
+      ocrState.files.push({
+        id: 'O' + uid(),
+        name: f.name,
+        dataUrl,
+        status: 'queued',
+        progress: 0,
+        results: [],       // array of {label, name, tk, bank, amt, note}
+        rawText: '',
+        addedDnttIds: [],  // track which results have been added as DNTT
+      });
+    } catch (e) {
+      console.error('[OCR] Failed to read file', f.name, e);
+      showToast(`Không đọc được ảnh ${f.name}`, 'error');
+    }
+  }
+  $('#ocrInfo').style.display = 'block';
+  renderOcrQueue();
+  updateOcrSummary();
+  showToast(`Đã thêm ${files.length} ảnh vào hàng đợi quét`, 'success');
+  scanQueue();
+}
+function showOcrProgress(text) {
+  $('#ocrProgress').classList.add('show');
+  $('#ocrProgressText').textContent = text || 'Đang quét…';
+}
+function hideOcrProgress() { $('#ocrProgress').classList.remove('show'); }
+
+function renderOcrQueue() {
+  const q = $('#ocrQueue');
+  q.innerHTML = '';
+  if (ocrState.files.length === 0) return;
+  for (const item of ocrState.files) {
+    const card = el('div', { className: 'ocr-card ' + item.status, onclick: () => openReview(item.id) });
+    card.appendChild(el('img', { className: 'thumb', src: item.dataUrl, alt: item.name }));
+    const info = el('div', { className: 'info' });
+    info.appendChild(el('div', { className: 'filename', title: item.name }, item.name));
+    const st = el('div', { className: 'status' });
+    st.appendChild(el('span', { className: 'status-dot' }));
+    let label = 'Đang chờ';
+    if (item.status === 'scanning') label = `Đang quét bằng AI…`;
+    else if (item.status === 'done') {
+      const n = item.results ? item.results.length : 0;
+      const added = item.addedDnttIds ? item.addedDnttIds.length : 0;
+      if (n === 0) label = '⚠ Không phát hiện được mục nào';
+      else if (added === n) label = `✓ Tự thêm ${added} mục`;
+      else if (added > 0) label = `${added}/${n} đã thêm`;
+      else label = `${n} mục — bấm để xem`;
+    }
+    else if (item.status === 'confirmed') label = `✓ Đã thêm`;
+    else if (item.status === 'error') label = `✗ ${item.errorMsg || 'Lỗi'}`;
+    st.appendChild(el('span', {}, label));
+    info.appendChild(st);
+    card.appendChild(info);
+    if (item.status === 'scanning') {
+      card.appendChild(el('div', { className: 'progress-bar', style: 'width: ' + (item.progress * 100) + '%' }));
+    }
+    if (item.status !== 'scanning') {
+      const btnLabel = item.status === 'done' ? 'Xem/sửa' : (item.status === 'error' ? 'Nhập tay' : 'Sửa');
+      const btnManual = el('button', {
+        className: 'manual-btn',
+        onclick: e => { e.stopPropagation(); openReviewManual(item.id); }
+      }, btnLabel);
+      card.appendChild(btnManual);
+    }
+    q.appendChild(card);
+  }
+}
+
+function updateOcrSummary() {
+  const total = ocrState.files.length;
+  const done = ocrState.files.filter(f => f.status === 'done' || f.status === 'confirmed').length;
+  const totalAdded = ocrState.files.reduce((s, f) => s + (f.addedDnttIds ? f.addedDnttIds.length : 0), 0);
+  const err = ocrState.files.filter(f => f.status === 'error').length;
+  $('#ocrSummary').textContent = total === 0 ? '' : `${done}/${total} ảnh đã quét · ${totalAdded} ĐNTT đã thêm${err ? ' · ' + err + ' lỗi' : ''}`;
+}
+
+// ============= REVIEW MODAL =============
+function openReview(idOrIdx) {
+  let idx;
+  if (typeof idOrIdx === 'string') idx = ocrState.files.findIndex(f => f.id === idOrIdx);
+  else idx = idOrIdx;
+  if (idx < 0 || idx >= ocrState.files.length) return;
+  ocrState.reviewIdx = idx;
+  const item = ocrState.files[idx];
+  if (item.status === 'queued' || item.status === 'scanning') {
+    showToast('Ảnh chưa quét xong. Bấm "Nhập tay" để gõ thủ công.', '');
+    return;
+  }
+  doOpenReview(item, idx);
+}
+
+function openReviewManual(idOrIdx) {
+  let idx;
+  if (typeof idOrIdx === 'string') idx = ocrState.files.findIndex(f => f.id === idOrIdx);
+  else idx = idOrIdx;
+  if (idx < 0 || idx >= ocrState.files.length) return;
+  ocrState.reviewIdx = idx;
+  const item = ocrState.files[idx];
+  // If results empty, add one blank row to start
+  if (!item.results || item.results.length === 0) {
+    item.results = [{ label: item.name.replace(/\.[^.]+$/, '').slice(0, 40), name: '', tk: '', bank: '', amt: null, note: '' }];
+  }
+  doOpenReview(item, idx);
+}
+
+function doOpenReview(item, idx) {
+  $('#reviewImg').src = item.dataUrl;
+  $('#reviewTitle').textContent = item.name;
+  $('#reviewIdx').textContent = `${idx + 1} / ${ocrState.files.length}`;
+  $('#ocrTextRaw').textContent = item.rawText || '(Chưa có dữ liệu — bấm "Quét lại" hoặc nhập tay vào bảng bên dưới.)';
+
+  renderResultsTable();
+  updateReviewStatus();
+  openModal('#modalReview');
+}
+
+function renderResultsTable() {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  const info = $('#resultsInfo');
+  const cont = $('#resultsContainer');
+  info.innerHTML = '';
+  cont.innerHTML = '';
+
+  if (!item.results || item.results.length === 0) {
+    cont.appendChild(el('div', { className: 'results-empty' }, 'Không có kết quả. Bấm "+ Thêm dòng trống" để gõ thủ công.'));
+    return;
+  }
+
+  const addedSet = new Set(item.addedDnttIds || []);
+  const total = item.results.length;
+  const added = item.addedDnttIds ? item.addedDnttIds.length : 0;
+  const infoText = added === total
+    ? `✓ AI đã tự thêm cả ${total} mục vào ĐNTT. Đối chiếu đã cập nhật. Sửa các ô bên dưới nếu thấy AI đọc sai.`
+    : `AI phát hiện ${total} mục${added > 0 ? `, đã thêm ${added}/${total}` : ''}. Kiểm tra lại số TK và số tiền trước khi xác nhận.`;
+  info.appendChild(el('div', { className: 'results-info' }, infoText));
+
+  const table = el('table', { className: 'results-table' });
+  const thead = el('thead');
+  const trh = el('tr');
+  ['Nhãn', 'Tên CTK', 'Số TK', 'NH', 'Số tiền', ''].forEach((h, i) => {
+    const th = el('th', {}, h);
+    if (i === 0) th.className = 'col-label-w';
+    if (i === 2) th.className = 'col-tk-w';
+    if (i === 3) th.className = 'col-bank-w';
+    if (i === 4) th.className = 'col-amt-w';
+    if (i === 5) th.className = 'row-actions';
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = el('tbody');
+  item.results.forEach((r, i) => {
+    const tr = el('tr');
+    const isAdded = addedSet.has(i);
+    ['label','name','tk','bank','amt'].forEach(field => {
+      const td = el('td');
+      const inp = el('input', {
+        type: 'text',
+        value: field === 'amt' ? (r.amt != null ? Number(r.amt).toLocaleString('vi-VN') : '') : (r[field] || ''),
+        oninput: e => {
+          if (field === 'amt') r[field] = parseAmount(e.target.value);
+          else r[field] = e.target.value;
+          // If row is already added, mark for re-add (user is editing)
+          if (isAdded) {
+            // Don't re-add immediately - show update button
+            tr.dataset.dirty = '1';
+            updateRowActionButton(i, tr);
+          }
+        }
+      });
+      if (field === 'tk') inp.className = 'mono';
+      if (field === 'amt') inp.className = 'amt';
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    const tdAct = el('td', { className: 'row-actions' });
+    if (isAdded) {
+      const btn = el('button', {
+        className: 'row-add added',
+        onclick: () => removeAddedResult(i),
+        title: 'Bấm để bỏ và sửa lại',
+      }, '✓ Đã thêm');
+      tdAct.appendChild(btn);
+    } else {
+      const btn = el('button', { className: 'row-add', onclick: () => addOneResult(i) }, '+ Thêm');
+      tdAct.appendChild(btn);
+      const btnDel = el('button', { className: 'row-del', title: 'Xóa dòng', onclick: () => deleteResult(i) }, '✕');
+      tdAct.appendChild(btnDel);
+    }
+    tr.dataset.rowIdx = String(i);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  cont.appendChild(table);
+}
+
+function updateRowActionButton(rowIdx, tr) {
+  // When user edits a row that was already added, show "Cập nhật" button
+  const tdAct = tr.querySelector('.row-actions');
+  if (!tdAct) return;
+  if (tr.dataset.dirty !== '1') return;
+  tdAct.innerHTML = '';
+  const btn = el('button', {
+    className: 'row-add',
+    onclick: () => updateAddedResult(rowIdx),
+    style: 'background: var(--warn);'
+  }, '↻ Cập nhật');
+  tdAct.appendChild(btn);
+}
+
+function removeAddedResult(rowIdx) {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item || !item.addedDnttIds) return;
+  // Find DNTT created from this row, remove it
+  const dntt = state.dntts.find(d => d.srcImageId === item.id && d.srcRowIdx === rowIdx);
+  if (dntt) deleteDntt(dntt.id);  // this also recomputes matches and renders
+  item.addedDnttIds = item.addedDnttIds.filter(i => i !== rowIdx);
+  renderResultsTable();
+  updateReviewStatus();
+  renderOcrQueue();
+  updateOcrSummary();
+  showToast('Đã bỏ ĐNTT khỏi danh sách', '');
+}
+
+function updateAddedResult(rowIdx) {
+  // Remove old DNTT then add new one with current values
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  const r = item.results[rowIdx];
+  if (!r) return;
+  const oldDntt = state.dntts.find(d => d.srcImageId === item.id && d.srcRowIdx === rowIdx);
+  if (oldDntt) {
+    state.dntts = state.dntts.filter(d => d.id !== oldDntt.id);
+  }
+  const res = addDntt({
+    label: r.label, name: r.name, acc: r.tk, bank: r.bank, amt: r.amt, note: r.note,
+    source: 'gemini-edit', srcImageId: item.id, srcRowIdx: rowIdx,
+  });
+  if (res.ok) {
+    if (!item.addedDnttIds) item.addedDnttIds = [];
+    if (!item.addedDnttIds.includes(rowIdx)) item.addedDnttIds.push(rowIdx);
+    showToast('Đã cập nhật ĐNTT', 'success');
+  } else showToast(res.msg, 'error');
+  renderResultsTable();
+  updateReviewStatus();
+  renderOcrQueue();
+  updateOcrSummary();
+}
+
+function updateReviewStatus() {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  const total = item.results ? item.results.length : 0;
+  const added = item.addedDnttIds ? item.addedDnttIds.length : 0;
+  $('#reviewStatus').textContent = total > 0 ? `${added}/${total} đã ở trong danh sách ĐNTT` : '';
+  const remaining = total - added;
+  const btn = $('#reviewConfirmAll');
+  if (remaining === 0) { btn.textContent = 'Đóng'; btn.classList.remove('primary'); }
+  else { btn.textContent = `+ Thêm ${remaining} mục còn lại`; btn.classList.add('primary'); }
+}
+
+function addOneResult(rowIdx) {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  const r = item.results[rowIdx];
+  if (!r) return;
+  const res = addDntt({
+    label: r.label, name: r.name, acc: r.tk, bank: r.bank, amt: r.amt, note: r.note, source: 'gemini',
+  });
+  if (!res.ok) { showToast(res.msg, 'error'); return; }
+  if (!item.addedDnttIds) item.addedDnttIds = [];
+  item.addedDnttIds.push(rowIdx);
+  renderResultsTable();
+  updateReviewStatus();
+  renderOcrQueue();
+  updateOcrSummary();
+  showToast('Đã thêm 1 ĐNTT', 'success');
+}
+
+function deleteResult(rowIdx) {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item || !item.results) return;
+  item.results.splice(rowIdx, 1);
+  // re-map addedDnttIds (decrement those after rowIdx, remove the rowIdx itself)
+  if (item.addedDnttIds) {
+    item.addedDnttIds = item.addedDnttIds.filter(i => i !== rowIdx).map(i => i > rowIdx ? i - 1 : i);
+  }
+  renderResultsTable();
+  updateReviewStatus();
+}
+
+function reviewConfirmAll() {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item || !item.results) { closeModal('#modalReview'); return; }
+  const addedSet = new Set(item.addedDnttIds || []);
+  const remaining = item.results.length - addedSet.size;
+  if (remaining === 0) { closeModal('#modalReview'); return; }
+  let added = 0, errors = 0;
+  for (let i = 0; i < item.results.length; i++) {
+    if (addedSet.has(i)) continue;
+    const r = item.results[i];
+    const res = addDntt({
+      label: r.label, name: r.name, acc: r.tk, bank: r.bank, amt: r.amt, note: r.note,
+      source: 'gemini', srcImageId: item.id, srcRowIdx: i,
+    });
+    if (res.ok) {
+      if (!item.addedDnttIds) item.addedDnttIds = [];
+      item.addedDnttIds.push(i);
+      added++;
+    } else errors++;
+  }
+  renderResultsTable();
+  updateReviewStatus();
+  renderOcrQueue();
+  updateOcrSummary();
+  if (added > 0) showToast(`Đã thêm ${added} ĐNTT${errors ? `, lỗi ${errors}` : ''}`, 'success');
+  closeModal('#modalReview');
+}
+
+function reviewSkip() { closeModal('#modalReview'); }
+
+function reviewNav(delta) {
+  let i = ocrState.reviewIdx + delta;
+  while (i >= 0 && i < ocrState.files.length && (ocrState.files[i].status === 'queued' || ocrState.files[i].status === 'scanning')) {
+    i += delta;
+  }
+  if (i >= 0 && i < ocrState.files.length) openReview(i);
+}
+
+function addBlankRow() {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  if (!item.results) item.results = [];
+  item.results.push({ label: '', name: '', tk: '', bank: '', amt: null, note: '' });
+  renderResultsTable();
+  updateReviewStatus();
+}
+
+async function rescanCurrent() {
+  const item = ocrState.files[ocrState.reviewIdx];
+  if (!item) return;
+  if (!settings.apiKey) { showToast('Chưa có API key', 'error'); return; }
+  closeModal('#modalReview');
+  item.status = 'queued';
+  item.results = [];
+  item.addedDnttIds = [];
+  renderOcrQueue();
+  scanQueue();
+  // Re-open after scan completes
+  showToast('Đang quét lại…', '');
+}
+
+// ============= EXPORT =============
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const matchedDnttIds = new Set(Object.values(state.matches));
+  const stats = { total: state.lcts.length, ok: 0, soft: 0, miss: 0 };
+  for (const lct of state.lcts) {
+    const s = getStatus(lct);
+    if (s.kind === 'ok') stats.ok++;
+    else if (s.kind === 'soft') stats.soft++;
+    else stats.miss++;
+  }
+  const sumRows = [
+    ['BÁO CÁO ĐỐI CHIẾU LỆNH CHUYỂN TIỀN × ĐỀ NGHỊ THANH TOÁN'], [],
+    ['Ngày đối chiếu', new Date().toLocaleDateString('vi-VN')],
+    ['File LCT', state.fileName], [],
+    ['CHỈ TIÊU', 'GIÁ TRỊ'],
+    ['Tổng số lệnh chuyển', stats.total],
+    ['  Khớp hoàn toàn', stats.ok],
+    ['  Lệch thông tin mềm', stats.soft],
+    ['  Chưa tìm thấy ĐNTT', stats.miss], [],
+    ['Tổng số ĐNTT đã nhập', state.dntts.length],
+    ['  Đã khớp với LCT', state.dntts.length - state.dntts.filter(d => !matchedDnttIds.has(d.id)).length],
+    ['  Chưa khớp LCT (thừa)', state.dntts.filter(d => !matchedDnttIds.has(d.id)).length],
+  ];
+  const ws0 = XLSX.utils.aoa_to_sheet(sumRows);
+  ws0['!cols'] = [{ wch: 36 }, { wch: 22 }];
+  XLSX.utils.book_append_sheet(wb, ws0, 'Tóm tắt');
+
+  const headers = ['STT','Mã GD','Tên TH (LCT)','TK (LCT)','NH (LCT)','Số tiền (LCT)','Nội dung','Mã ĐNTT','Tên CTK (ĐNTT)','TK (ĐNTT)','NH (ĐNTT)','Số tiền (ĐNTT)','Khớp tên','Khớp NH','Trạng thái','Nguồn'];
+  const data = [headers];
+  for (const lct of state.lcts) {
+    const s = getStatus(lct);
+    const d = s.dntt;
+    let tt = 'CHƯA KHỚP';
+    if (s.kind === 'ok') tt = 'KHỚP HOÀN TOÀN';
+    else if (s.kind === 'soft') tt = 'KHỚP CỨNG (lệch ' + s.issues.join('+') + ')';
+    data.push([
+      lct.stt, lct.code, lct.name, lct.acc, lct.bank, lct.amt, lct.content,
+      d?.label || '', d?.name || '', d?.acc || '', d?.bank || '', d?.amt ?? '',
+      d ? (s.kind === 'soft' && s.issues.includes('TÊN') ? 'LỆCH' : 'OK') : '',
+      d ? (s.kind === 'soft' && s.issues.includes('NH') ? 'LỆCH' : 'OK') : '',
+      tt, d?.source || ''
+    ]);
+  }
+  const ws1 = XLSX.utils.aoa_to_sheet(data);
+  ws1['!cols'] = [{wch:5},{wch:22},{wch:28},{wch:18},{wch:22},{wch:14},{wch:36},{wch:14},{wch:24},{wch:18},{wch:18},{wch:14},{wch:9},{wch:9},{wch:32},{wch:10}];
+  for (let r = 2; r <= state.lcts.length + 1; r++) {
+    [['F', 5], ['L', 11]].forEach(([col, c]) => {
+      const cell = XLSX.utils.encode_cell({ r: r-1, c });
+      if (ws1[cell]) ws1[cell].z = '#,##0';
+    });
+    [3, 9].forEach(c => {
+      const cell = XLSX.utils.encode_cell({ r: r-1, c });
+      if (ws1[cell]) ws1[cell].z = '@';
+    });
+  }
+  XLSX.utils.book_append_sheet(wb, ws1, 'Đối chiếu');
+
+  const warnHdr = ['Loại','STT LCT','Mã GD','Tên TH','TK','NH','Số tiền','Chi tiết'];
+  const warnData = [warnHdr];
+  for (const lct of state.lcts) {
+    const s = getStatus(lct);
+    if (s.kind === 'miss') warnData.push(['❌ CHƯA KHỚP', lct.stt, lct.code, lct.name, lct.acc, lct.bank, lct.amt, 'Không có ĐNTT trùng cả TK và số tiền']);
+    else if (s.kind === 'soft') warnData.push(['⚠️ LỆCH MỀM (' + s.issues.join('+') + ')', lct.stt, lct.code, lct.name, lct.acc, lct.bank, lct.amt, `ĐNTT: ${s.dntt.label || s.dntt.name} | Tên ĐNTT=${s.dntt.name} | NH ĐNTT=${s.dntt.bank}`]);
+  }
+  const ws2 = XLSX.utils.aoa_to_sheet(warnData);
+  ws2['!cols'] = [{wch:28},{wch:7},{wch:22},{wch:28},{wch:18},{wch:22},{wch:14},{wch:50}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Cảnh báo');
+
+  const exHdr = ['Mã ĐNTT','Tên CTK','TK','NH','Số tiền','Nguồn','Ghi chú'];
+  const exData = [exHdr];
+  for (const d of state.dntts) {
+    if (matchedDnttIds.has(d.id)) continue;
+    exData.push([d.label, d.name, d.acc, d.bank, d.amt, d.source || '', d.note]);
+  }
+  const ws3 = XLSX.utils.aoa_to_sheet(exData);
+  ws3['!cols'] = [{wch:14},{wch:30},{wch:18},{wch:22},{wch:14},{wch:10},{wch:36}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'ĐNTT chưa khớp LCT');
+
+  const fname = `doi_chieu_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast('Đã xuất file ' + fname, 'success');
+}
+
+// ============= RENDER =============
+function render() { renderLcts(); renderDntts(); renderStats(); }
+function renderStats() {
+  const total = state.lcts.length;
+  let ok = 0, soft = 0, miss = 0;
+  for (const lct of state.lcts) {
+    const s = getStatus(lct);
+    if (s.kind === 'ok') ok++; else if (s.kind === 'soft') soft++; else miss++;
+  }
+  const matchedIds = new Set(Object.values(state.matches));
+  const extra = state.dntts.filter(d => !matchedIds.has(d.id)).length;
+  $('#statTotal').textContent = total;
+  $('#statOk').textContent = ok;
+  $('#statSoft').textContent = soft;
+  $('#statMiss').textContent = miss;
+  $('#statExtra').textContent = extra;
+  $('#cAll').textContent = total; $('#cOk').textContent = ok; $('#cSoft').textContent = soft; $('#cMiss').textContent = miss;
+  $('#dcAll').textContent = state.dntts.length;
+  $('#dcMatched').textContent = state.dntts.length - extra;
+  $('#dcUnmatched').textContent = extra;
+  $('#btnExport').disabled = total === 0;
+  $('#btnColMap').disabled = !state.rawRows;
+  $('#btnPaste').disabled = total === 0;
+  $('#btnOcr').disabled = total === 0;
+  $('#filtersRow').style.display = total > 0 ? '' : 'none';
+  $('#lctCount').textContent = total > 0 ? `${total} lệnh — ${state.fileName || ''}` : '— chưa có dữ liệu';
+  $('#dnttCount').textContent = `${state.dntts.length} mục`;
+}
+function renderLcts() {
+  const area = $('#lctArea');
+  if (state.lcts.length === 0) return;
+  const search = state.search.trim().toLowerCase();
+  const filtered = state.lcts.filter(lct => {
+    const s = getStatus(lct);
+    if (state.filter === 'ok' && s.kind !== 'ok') return false;
+    if (state.filter === 'soft' && s.kind !== 'soft') return false;
+    if (state.filter === 'miss' && s.kind !== 'miss') return false;
+    if (search) {
+      const blob = (lct.name + ' ' + lct.acc + ' ' + lct.code + ' ' + lct.content).toLowerCase();
+      if (!blob.includes(search)) return false;
+    }
+    return true;
+  });
+  area.innerHTML = '';
+  if (filtered.length === 0) {
+    area.appendChild(el('div', { className: 'empty' }, [el('div', { className: 'icon' }, '∅'), el('h3', {}, 'Không có lệnh nào khớp bộ lọc'), el('p', {}, 'Thử đổi bộ lọc.')]));
+    return;
+  }
+  const wrap = el('div', { className: 'table-wrap' });
+  const table = el('table');
+  const thead = el('thead');
+  const tr = el('tr');
+  ['#', 'Tên người thụ hưởng', 'TK', 'Ngân hàng', 'Số tiền', 'Trạng thái', 'ĐNTT đối chiếu'].forEach(h => tr.appendChild(el('th', {}, h)));
+  thead.appendChild(tr); table.appendChild(thead);
+  const tbody = el('tbody');
+  for (const lct of filtered) {
+    const s = getStatus(lct);
+    const cls = s.kind === 'ok' ? 'matched' : s.kind === 'soft' ? 'soft-mismatch' : 'unmatched-row';
+    const row = el('tr', { className: cls, 'data-lct-id': lct.id });
+    row.appendChild(el('td', { className: 'col-stt' }, String(lct.stt)));
+    row.appendChild(el('td', { className: 'col-name', title: lct.name }, lct.name || '—'));
+    row.appendChild(el('td', { className: 'col-tk' }, lct.acc || '—'));
+    row.appendChild(el('td', { className: 'col-bank' }, lct.bank || '—'));
+    row.appendChild(el('td', { className: 'col-amt' }, fmtAmt(lct.amt)));
+    const tdSt = el('td', { className: 'col-status' });
+    if (s.kind === 'ok') tdSt.appendChild(el('span', { className: 'status-pill ok' }, 'Khớp'));
+    else if (s.kind === 'soft') tdSt.appendChild(el('span', { className: 'status-pill soft' }, 'Lệch ' + s.issues.join('+')));
+    else tdSt.appendChild(el('span', { className: 'status-pill miss' }, 'Chưa khớp'));
+    row.appendChild(tdSt);
+    const tdMi = el('td', { className: 'col-match-info' });
+    if (s.dntt) {
+      tdMi.appendChild(el('div', {}, [
+        el('code', {}, s.dntt.label || s.dntt.name || s.dntt.id), ' ',
+        el('button', { className: 'unlink', title: 'Bỏ ghép', onclick: () => unlinkLct(lct.id) }, '⨯')
+      ]));
+      if (s.kind === 'soft') {
+        const detail = el('div', { style: 'font-size:11px;color:var(--text-muted);margin-top:3px' });
+        if (s.issues.includes('TÊN')) detail.appendChild(el('div', {}, `→ ĐNTT: ${s.dntt.name || '(trống)'}`));
+        if (s.issues.includes('NH')) detail.appendChild(el('div', {}, `→ NH ĐNTT: ${s.dntt.bank || '(trống)'}`));
+        tdMi.appendChild(detail);
+      }
+    } else tdMi.appendChild(el('span', { style: 'color:var(--text-muted)' }, '—'));
+    row.appendChild(tdMi);
+    tbody.appendChild(row);
+  }
+  table.appendChild(tbody); wrap.appendChild(table); area.appendChild(wrap);
+}
+function renderDntts() {
+  const list = $('#dnttList');
+  list.innerHTML = '';
+  if (state.dntts.length === 0) {
+    list.appendChild(el('div', { className: 'empty' }, [el('div', { className: 'icon' }, '∅'), el('h3', {}, 'Chưa có ĐNTT nào'), el('p', {}, 'Quét ảnh, dán bảng, hoặc gõ trực tiếp.')]));
+    return;
+  }
+  const matchedIds = new Set(Object.values(state.matches));
+  const filtered = state.dntts.filter(d => {
+    if (state.dnttFilter === 'matched') return matchedIds.has(d.id);
+    if (state.dnttFilter === 'unmatched') return !matchedIds.has(d.id);
+    return true;
+  });
+  if (filtered.length === 0) {
+    list.appendChild(el('div', { className: 'empty', style: 'padding: 30px 16px' }, [el('p', {}, 'Không có mục nào trong bộ lọc.')]));
+    return;
+  }
+  for (const d of filtered) {
+    const matched = matchedIds.has(d.id);
+    const item = el('div', { className: 'dntt-item ' + (matched ? 'matched' : 'unmatched') });
+    const body = el('div', { className: 'body' });
+    const top = el('div', { className: 'top' });
+    top.appendChild(el('span', { className: 'lbl' }, (d.source === 'ocr' ? '📷 ' : '') + (d.label || d.name || '—')));
+    top.appendChild(el('span', { className: 'amt' }, fmtAmt(d.amt)));
+    body.appendChild(top);
+    if (d.name && d.label) body.appendChild(el('div', { className: 'name' }, d.name));
+    const meta = el('div', { className: 'meta' });
+    meta.appendChild(el('span', {}, d.acc));
+    if (d.bank) meta.appendChild(el('span', {}, d.bank));
+    body.appendChild(meta);
+    if (!matched) body.appendChild(el('div', { style: 'font-size:11px;color:var(--danger);margin-top:4px;font-weight:500' }, '⚠ Chưa tìm thấy LCT'));
+    item.appendChild(body);
+    item.appendChild(el('button', { className: 'del', title: 'Xóa', onclick: () => deleteDntt(d.id) }, '✕'));
+    list.appendChild(item);
+  }
+}
+
+// ============= UI =============
+function showToast(msg, kind='') {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.className = 'toast ' + kind, 3000);
+}
+function openModal(id) { $(id).classList.add('show'); }
+function closeModal(id) { $(id).classList.remove('show'); }
+
+function quickAddSubmit() {
+  const r = addDntt({
+    label: $('#qaLabel').value, acc: $('#qaTk').value, amt: $('#qaAmt').value,
+    name: $('#qaName').value, bank: $('#qaBank').value, source: 'manual',
+  });
+  if (!r.ok) { showToast(r.msg, 'error'); return; }
+  $('#qaTk').value = ''; $('#qaAmt').value = ''; $('#qaName').value = ''; $('#qaBank').value = '';
+  const m = $('#qaLabel').value.match(/^(.*?)(\d+)\s*$/);
+  if (m) $('#qaLabel').value = m[1] + (parseInt(m[2]) + 1);
+  $('#qaLabel').focus();
+  setTimeout(() => {
+    const lct = state.lcts.find(l => state.matches[l.id] === r.d.id);
+    if (lct) {
+      const row = $(`tr[data-lct-id="${lct.id}"]`);
+      if (row) {
+        row.classList.add('highlight');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => row.classList.remove('highlight'), 1500);
+      }
+    }
+  }, 50);
+}
+
+function pasteSubmit() {
+  const txt = $('#pasteArea').value;
+  const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) { showToast('Không có dữ liệu', 'error'); return; }
+  const sep = lines[0].includes('\t') ? '\t' : (lines[0].includes(',') ? ',' : '\t');
+  let startIdx = 0;
+  const firstParts = lines[0].split(sep);
+  if (firstParts.length >= 3 && !/^\d/.test((firstParts[2] || '').trim())) startIdx = 1;
+  let added = 0, skipped = 0;
+  for (let i = startIdx; i < lines.length; i++) {
+    const [label='', name='', acc='', bank='', amt='', note=''] = lines[i].split(sep).map(p => p.trim());
+    const r = addDntt({ label, name, acc, bank, amt, note, source: 'paste' });
+    if (r.ok) added++; else skipped++;
+  }
+  closeModal('#modalPaste'); $('#pasteArea').value = '';
+  showToast(`Đã thêm ${added} ĐNTT${skipped ? ', bỏ qua ' + skipped : ''}`, 'success');
+}
+
+function openColMap() {
+  if (!state.rawRows) return;
+  const headers = (state.rawRows[state.colMap.headerRow] || []);
+  const fillSel = (id, current) => {
+    const sel = $('#' + id); sel.innerHTML = '<option value="-1">— Không chọn —</option>';
+    headers.forEach((h, i) => {
+      const opt = el('option', { value: i }, `${String.fromCharCode(65 + i)} — ${(h ?? '').toString().slice(0, 40)}`);
+      if (i === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  };
+  const hsel = $('#cmHeaderRow'); hsel.innerHTML = '';
+  for (let i = 0; i < Math.min(15, state.rawRows.length); i++) {
+    const opt = el('option', { value: i }, `Hàng ${i+1}: ${(state.rawRows[i] || []).slice(0,3).join(' | ').slice(0,60)}`);
+    if (i === state.colMap.headerRow) opt.selected = true;
+    hsel.appendChild(opt);
+  }
+  ['cmName','cmAcc','cmBank','cmAmt','cmCode','cmContent'].forEach((id, idx) => {
+    fillSel(id, state.colMap[['name','acc','bank','amt','code','content'][idx]]);
+  });
+  openModal('#modalColMap');
+}
+function saveColMap() {
+  const keys = ['name','acc','bank','amt','code','content'];
+  state.colMap.headerRow = parseInt($('#cmHeaderRow').value);
+  ['cmName','cmAcc','cmBank','cmAmt','cmCode','cmContent'].forEach((id, idx) => {
+    state.colMap[keys[idx]] = parseInt($('#' + id).value);
+  });
+  parseLcts(); recomputeMatches(); closeModal('#modalColMap'); saveState(); render();
+  showToast(`Đã đọc lại ${state.lcts.length} lệnh chuyển`, 'success');
+}
+
+function resetAll() {
+  if (!confirm('Xóa toàn bộ LCT, ĐNTT, đối chiếu và ảnh đã quét?')) return;
+  state = { lcts: [], dntts: [], matches: {}, filter: 'all', dnttFilter: 'all', search: '', rawRows: null, colMap: null, fileName: '' };
+  ocrState = { files: [], reviewIdx: 0, scanning: false };
+  localStorage.removeItem(LS_KEY);
+  $('#lctArea').innerHTML = `<div class="splash">
+    <h2>Bắt đầu bằng việc <em>tải file LCT</em></h2>
+    <p>Tool đọc file Excel xuất từ Internet Banking, sau đó dùng Google Gemini AI để đọc ảnh ĐNTT — kể cả chữ viết tay tiếng Việt.</p>
+    <label class="file-label btn primary"><span>↑</span> Chọn file Excel<input type="file" id="fileInputAlt" accept=".xls,.xlsx,.xlsm,.csv"></label>
+  </div>`;
+  bindAltFileInput();
+  renderOcrQueue(); updateOcrSummary();
+  render();
+  showToast('Đã reset', '');
+}
+
+function saveJson() {
+  const blob = new Blob([JSON.stringify({
+    fileName: state.fileName, lcts: state.lcts, dntts: state.dntts,
+    matches: state.matches, colMap: state.colMap, rawRows: state.rawRows,
+  }, null, 2)], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `recon_${new Date().toISOString().slice(0,10)}.json` });
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('Đã lưu file JSON', 'success');
+}
+async function loadJson(file) {
+  try {
+    const obj = JSON.parse(await readFile(file, false));
+    Object.assign(state, obj);
+    recomputeMatches(); saveState(); render();
+    showToast('Đã khôi phục từ file JSON', 'success');
+  } catch (e) { showToast('File JSON không hợp lệ', 'error'); }
+}
+
+function bindAltFileInput() {
+  const alt = $('#fileInputAlt');
+  if (alt) alt.onchange = e => { if (e.target.files[0]) loadLctFile(e.target.files[0]); };
+}
+
+// ============= EVENT BINDINGS =============
+function bindFileInput(selector, handler) {
+  const inp = $(selector);
+  if (!inp) return;
+  inp.onchange = e => {
+    const files = e.target.files;
+    if (files && files.length) handler(files);
+    e.target.value = '';
+  };
+}
+bindFileInput('#fileInput', files => loadLctFile(files[0]));
+bindFileInput('#ocrFiles', files => handleOcrFiles(files));
+bindFileInput('#loadJsonInput', files => loadJson(files[0]));
+
+$('#btnExport').onclick = exportExcel;
+$('#btnReset').onclick = resetAll;
+$('#btnPaste').onclick = () => openModal('#modalPaste');
+$('#btnPasteSubmit').onclick = pasteSubmit;
+$('#btnColMap').onclick = openColMap;
+$('#btnColMapSave').onclick = saveColMap;
+$('#btnSaveJson').onclick = saveJson;
+
+$('#btnOcr').onclick = () => {
+  openModal('#modalOcr');
+  $('#apiKeyMissing').style.display = settings.apiKey ? 'none' : 'block';
+  $('#ocrInfo').style.display = ocrState.files.length > 0 ? 'block' : 'none';
+};
+$('#btnSettings').onclick = openSettingsModal;
+$('#btnSaveSettings').onclick = saveSettingsFromModal;
+$('#btnTestApi').onclick = testApiKey;
+$('#btnToggleKey').onclick = () => {
+  const inp = $('#settingsApiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+$('#reviewConfirmAll').onclick = reviewConfirmAll;
+$('#reviewSkip').onclick = reviewSkip;
+$('#reviewPrev').onclick = () => reviewNav(-1);
+$('#reviewNext').onclick = () => reviewNav(1);
+$('#btnAddRow').onclick = addBlankRow;
+$('#btnRescan').onclick = rescanCurrent;
+
+const btnClearLog = document.getElementById('btnClearLog');
+if (btnClearLog) btnClearLog.onclick = () => { const d = $('#ocrDebug'); if (d) d.innerHTML = ''; };
+
+// Drop zone
+const dz = $('#dropZone');
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', e => {
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+    handleOcrFiles(e.dataTransfer.files);
+  }
+});
+dz.addEventListener('click', e => {
+  if (e.target.closest('label.file-label') || e.target.tagName === 'INPUT') return;
+  $('#ocrFiles').click();
+});
+
+function bindAltFileInput() {
+  const alt = $('#fileInputAlt');
+  if (alt) {
+    alt.onchange = e => {
+      if (e.target.files[0]) loadLctFile(e.target.files[0]);
+      e.target.value = '';
+    };
+  }
+}
+bindAltFileInput();
+
+$$('[data-close]').forEach(b => b.onclick = () => $$('.modal-back').forEach(m => m.classList.remove('show')));
+$$('.modal-back').forEach(m => m.onclick = e => { if (e.target === m) m.classList.remove('show'); });
+
+$('#qaAdd').onclick = quickAddSubmit;
+$$('.quick-add input').forEach(inp => { inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); quickAddSubmit(); } }; });
+
+$$('.filters .chip[data-f]').forEach(c => {
+  c.onclick = () => {
+    state.filter = c.getAttribute('data-f');
+    $$('.filters .chip[data-f]').forEach(x => x.classList.toggle('active', x === c));
+    renderLcts();
+  };
+});
+$$('.filters .chip[data-df]').forEach(c => {
+  c.onclick = () => {
+    state.dnttFilter = c.getAttribute('data-df');
+    $$('.filters .chip[data-df]').forEach(x => x.classList.toggle('active', x === c));
+    renderDntts();
+  };
+});
+$('#searchInput').oninput = e => { state.search = e.target.value; renderLcts(); };
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $$('.modal-back').forEach(m => m.classList.remove('show'));
+});
+
+// ============= SETTINGS UI =============
+function openSettingsModal() {
+  $('#settingsApiKey').value = settings.apiKey || '';
+  $('#settingsApiKey').type = 'password';
+  $('#settingsModel').value = settings.model || 'gemini-2.5-flash';
+  $('#testResult').textContent = '';
+  openModal('#modalSettings');
+}
+function saveSettingsFromModal() {
+  settings.apiKey = $('#settingsApiKey').value.trim();
+  settings.model = $('#settingsModel').value;
+  saveSettings();
+  closeModal('#modalSettings');
+  showToast('Đã lưu cài đặt', 'success');
+  if ($('#apiKeyMissing')) $('#apiKeyMissing').style.display = settings.apiKey ? 'none' : 'block';
+}
+async function testApiKey() {
+  const key = $('#settingsApiKey').value.trim();
+  const model = $('#settingsModel').value;
+  const result = $('#testResult');
+  if (!key) { result.textContent = '⚠ Nhập API key trước'; result.style.color = 'var(--danger)'; return; }
+  result.textContent = 'Đang test…'; result.style.color = 'var(--text-muted)';
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'Trả lời "OK" (chỉ 2 chữ).' }] }],
+        generationConfig: { maxOutputTokens: 10, temperature: 0 }
+      })
+    });
+    if (res.ok) {
+      result.textContent = '✓ Kết nối OK, model "' + model + '" hoạt động';
+      result.style.color = 'var(--success)';
+    } else {
+      const errText = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { msg = (JSON.parse(errText).error || {}).message || msg; } catch {}
+      result.textContent = '✗ ' + msg;
+      result.style.color = 'var(--danger)';
+    }
+  } catch (e) {
+    result.textContent = '✗ Lỗi: ' + (e.message || e);
+    result.style.color = 'var(--danger)';
+  }
+}
+
+// ============= INIT =============
+loadSettings();
+loadState();
+render();
+</script>
+</body>
+</html>
