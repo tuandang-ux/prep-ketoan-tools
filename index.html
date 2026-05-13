@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Botool — Bộ công cụ Kế toán</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f4ed;
+  --bg-card: #ffffff;
+  --bg-soft: #efeae0;
+  --bg-paper: #fcfaf4;
+  --text: #1a1f2e;
+  --text-muted: #5a6478;
+  --text-dim: #94a0b8;
+  --border: #e2dccf;
+  --border-strong: #cbc3b1;
+  --primary: #1a1f2e;
+  --accent: #b54a2c;
+  --accent-soft: #fce7df;
+  --accent-deep: #8e3a22;
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --warning: #b45309;
+  --warning-soft: #fde68a;
+  --info: #1e40af;
+  --info-soft: #dbeafe;
+  --teal: #0a4d3a;
+  --teal-soft: #d1ebe1;
+  --purple: #6b21a8;
+  --purple-soft: #ede4f6;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Decorative paper texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(181, 74, 44, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(10, 77, 58, 0.03) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+
+/* ===== HEADER / MASTHEAD ===== */
+.masthead {
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 24px;
+  margin-bottom: 48px;
+  position: relative;
+}
+
+.masthead-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.masthead-top .left,
+.masthead-top .right {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.brand-title {
+  font-family: var(--serif);
+  font-size: clamp(48px, 7vw, 84px);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.brand-title em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.brand-meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  line-height: 1.5;
+}
+
+.brand-meta strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.tagline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 19px;
+  color: var(--text-muted);
+  margin-top: 18px;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+  margin-top: 8px;
+}
+
+.section-title .num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+
+.section-title .label {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.section-title .line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== TOOL GRID ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 24px 24px 22px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--card-accent, var(--accent));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 24px -8px rgba(26, 31, 46, 0.12), 0 2px 8px -2px rgba(26, 31, 46, 0.06);
+}
+
+.card:hover::before {
+  transform: scaleX(1);
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-num {
+  font-family: var(--serif);
+  font-size: 38px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--card-accent, var(--accent));
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.card-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  background: var(--card-soft, var(--accent-soft));
+  color: var(--card-accent, var(--accent));
+  border-radius: 2px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.card-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+}
+
+.card-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.card-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--card-accent, var(--accent));
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: gap 0.2s ease;
+}
+
+.card:hover .card-arrow {
+  gap: 10px;
+}
+
+.card-arrow svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover .card-arrow svg {
+  transform: translateX(2px);
+}
+
+/* Card variants — accent colours */
+.card.c-accent  { --card-accent: var(--accent);   --card-soft: var(--accent-soft); }
+.card.c-teal    { --card-accent: var(--teal);     --card-soft: var(--teal-soft); }
+.card.c-warn    { --card-accent: var(--warning);  --card-soft: var(--warning-soft); }
+.card.c-info    { --card-accent: var(--info);     --card-soft: var(--info-soft); }
+.card.c-success { --card-accent: var(--success);  --card-soft: var(--success-soft); }
+.card.c-purple  { --card-accent: var(--purple);   --card-soft: var(--purple-soft); }
+
+/* ===== INFO STRIP ===== */
+.info-strip {
+  margin-top: 56px;
+  padding: 28px 32px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+}
+
+.info-item .info-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.info-item .info-value {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.info-item .info-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ===== FOOTER ===== */
+.foot {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.foot .em {
+  color: var(--accent);
+  font-style: italic;
+  font-family: var(--serif);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .wrap { padding: 24px 18px 48px; }
+  .masthead-top { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .info-strip { grid-template-columns: 1fr; gap: 18px; padding: 22px; }
+  .grid { grid-template-columns: 1fr; }
+  .brand-meta { text-align: left; }
+}
+
+@media (max-width: 480px) {
+  .brand-title { font-size: 44px; }
+  .tagline { font-size: 16px; }
+}
+
+/* Search */
+.searchbar {
+  margin: 0 0 32px;
+  position: relative;
+  max-width: 480px;
+}
+
+.searchbar input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  font-family: var(--sans);
+  font-size: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchbar input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.searchbar svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.card.hidden { display: none; }
+
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 48px 24px;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 16px;
+  display: none;
+}
+
+.empty-state.show { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== MASTHEAD ===== -->
+  <header class="masthead">
+    <div class="masthead-top">
+      <div class="left">
+        <span class="dot"></span>
+        <span>Botool · Internal Tools</span>
+      </div>
+      <div class="right">
+        <span id="today-date">—</span>
+        <span>·</span>
+        <span>Vol. 01</span>
+      </div>
+    </div>
+
+    <div class="brand">
+      <h1 class="brand-title">Bo<em>tool</em></h1>
+      <div class="brand-meta">
+        <strong>06 công cụ</strong><br/>
+        Phòng Kế toán &amp; Tài chính
+      </div>
+    </div>
+
+    <p class="tagline">
+      Bộ công cụ nội bộ hỗ trợ <em>đối chiếu, hạch toán</em> và <em>kiểm soát chứng từ</em> — chạy hoàn toàn trên trình duyệt, dữ liệu không rời máy bạn.
+    </p>
+  </header>
+
+  <!-- ===== SECTION TITLE ===== -->
+  <div class="section-title">
+    <span class="num">§ 01</span>
+    <span class="label">Danh mục công cụ</span>
+    <span class="line"></span>
+  </div>
+
+  <!-- Search -->
+  <div class="searchbar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.3-4.3"></path>
+    </svg>
+    <input type="text" id="search" placeholder="Tìm tool theo tên hoặc từ khoá..." autocomplete="off"/>
+  </div>
+
+  <!-- ===== TOOL GRID ===== -->
+  <div class="grid" id="grid">
+
+    <!-- Tool 1 -->
+    <a class="card c-accent" href="1-doichieuhddauvao.html" data-keywords="đối chiếu hóa đơn đầu vào hạch toán ketoan sổ kế toán">
+      <div class="card-head">
+        <div class="card-num">01</div>
+        <div class="card-tag">Đối chiếu</div>
+      </div>
+      <h3 class="card-title">Đối chiếu Hạch toán Hóa đơn Đầu vào</h3>
+      <p class="card-desc">
+        Kiểm tra Hóa đơn ↔ Sổ hạch toán theo bộ ba MST · Số HĐ · Ngày. So khớp 1–3 file Excel để tìm sai lệch, thiếu chứng từ hoặc hạch toán trùng.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">Excel · 3 nguồn</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- Tool 2 -->
+    <a class="card c-warn" href="2-doichieuhddaura.html" data-keywords="đối chiếu hóa đơn đầu ra hạch toán bán hàng meinvoice">
+      <div class="card-head">
+        <div class="card-num">02</div>
+        <div class="card-tag">Đối chiếu</div>
+      </div>
+      <h3 class="card-title">Đối chiếu Hạch toán Hóa đơn Đầu ra</h3>
+      <p class="card-desc">
+        Soát lại hoá đơn xuất ra với sổ hạch toán doanh thu. Phát hiện hoá đơn chưa ghi sổ, ghi sai mã thuế, sai khách hàng hoặc sai kỳ.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">Excel · Sổ DT</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- Tool 3 -->
+    <a class="card c-teal" href="3-doichieupbdoanhthu.html" data-keywords="phân bổ doanh thu misa meinvoice kỳ phân bổ rule">
+      <div class="card-head">
+        <div class="card-num">03</div>
+        <div class="card-tag">Phân bổ DT</div>
+      </div>
+      <h3 class="card-title">Check Phân bổ Doanh thu</h3>
+      <p class="card-desc">
+        Đối chiếu doanh thu phân bổ Misa với hóa đơn xuất Meinvoice. Kiểm tra tính <em>đúng — đủ — chuẩn</em> kỳ phân bổ theo rule đã thiết lập.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">Misa × Meinvoice</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- Tool 4 -->
+    <a class="card c-info" href="4-hachtoanmeta.html" data-keywords="meta facebook misa amis hạch toán pdf import quảng cáo">
+      <div class="card-head">
+        <div class="card-num">04</div>
+        <div class="card-tag">Hạch toán</div>
+      </div>
+      <h3 class="card-title">Hạch toán Hóa đơn Meta → MISA</h3>
+      <p class="card-desc">
+        Đọc tự động PDF hoá đơn Meta (Facebook Ads), bóc tách thông tin và xuất file import vào MISA AMIS Accounting. Có quản lý mã dịch vụ.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">PDF · Auto import</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- Tool 5 -->
+    <a class="card c-purple" href="5-hachtoanluong.html" data-keywords="lương bảng lương chi phí prep hạch toán nhân sự bộ phận rule">
+      <div class="card-head">
+        <div class="card-num">05</div>
+        <div class="card-tag">Hạch toán</div>
+      </div>
+      <h3 class="card-title">Hạch toán Chi phí Lương</h3>
+      <p class="card-desc">
+        Import bảng lương, áp rule hạch toán theo bộ phận để xuất ra file định khoản chuẩn. Lưu rule riêng cho bộ phận mới, tự gợi ý cho lần sau.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">Bảng lương · Rule</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- Tool 6 -->
+    <a class="card c-success" href="6-scanlct.html" data-keywords="lệnh chuyển tiền đề nghị thanh toán lct đntt gemini ai ảnh ocr">
+      <div class="card-head">
+        <div class="card-num">06</div>
+        <div class="card-tag">AI · OCR</div>
+      </div>
+      <h3 class="card-title">Đối chiếu LCT × ĐNTT</h3>
+      <p class="card-desc">
+        Đối chiếu Lệnh chuyển tiền với Đề nghị thanh toán. Quét ảnh bằng Gemini AI, dán bảng hoặc gõ nhanh — tự khớp số tiền, người nhận, nội dung.
+      </p>
+      <div class="card-foot">
+        <span class="card-meta">Ảnh · Gemini AI</span>
+        <span class="card-arrow">
+          Mở tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <div class="empty-state" id="empty">
+      Không tìm thấy tool nào phù hợp với từ khoá này.
+    </div>
+
+  </div>
+
+  <!-- ===== INFO STRIP ===== -->
+  <div class="info-strip">
+    <div class="info-item">
+      <div class="info-label">⚡ Hoạt động</div>
+      <div class="info-value">Chạy local trên trình duyệt</div>
+      <div class="info-sub">Không upload dữ liệu lên server</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">📄 Đầu vào</div>
+      <div class="info-value">Excel · PDF · Ảnh</div>
+      <div class="info-sub">Hỗ trợ đa định dạng chứng từ</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">🎯 Kết quả</div>
+      <div class="info-value">Export ngược về Excel</div>
+      <div class="info-sub">Sẵn sàng import vào phần mềm KT</div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="foot">
+    <div>
+      <span class="em">Botool</span> &nbsp;·&nbsp; Internal · Phòng Kế toán
+    </div>
+    <div>
+      v1.0 · <span id="year">2026</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// Set today's date
+(function(){
+  const today = new Date();
+  const months = ['Th.01','Th.02','Th.03','Th.04','Th.05','Th.06','Th.07','Th.08','Th.09','Th.10','Th.11','Th.12'];
+  const dateStr = today.getDate().toString().padStart(2,'0') + ' ' + months[today.getMonth()] + ' ' + today.getFullYear();
+  const el = document.getElementById('today-date');
+  if (el) el.textContent = dateStr;
+  const yr = document.getElementById('year');
+  if (yr) yr.textContent = today.getFullYear();
+})();
+
+// Search filter
+(function(){
+  const input = document.getElementById('search');
+  const cards = document.querySelectorAll('.card');
+  const empty = document.getElementById('empty');
+
+  function norm(s){
+    return s.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/đ/g,'d');
+  }
+
+  input.addEventListener('input', function(){
+    const q = norm(this.value.trim());
+    let visible = 0;
+    cards.forEach(card => {
+      if (!q) {
+        card.classList.remove('hidden');
+        visible++;
+        return;
+      }
+      const title = norm(card.querySelector('.card-title').textContent);
+      const desc  = norm(card.querySelector('.card-desc').textContent);
+      const kw    = norm(card.dataset.keywords || '');
+      if (title.includes(q) || desc.includes(q) || kw.includes(q)) {
+        card.classList.remove('hidden');
+        visible++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+    empty.classList.toggle('show', visible === 0);
+  });
+})();
+</script>
+</body>
+</html>
